@@ -180,8 +180,21 @@ end)
 frame:SetScript("OnShow", function() AtlasCFM.Quest.OnQuestFrameShow() end)
 
 -- Check Completed Quests Button
-UI_Main.CheckCompletedQuestsButton = CreateElement("Button", "", frame, "OptionsButtonTemplate", 220, 20,
-    { "BOTTOM", 0, 10 }, L["Check Completed Quests"])
+-- Use the segmented panel button artwork for this wide footer control.
+-- The single-piece OptionsButtonTemplate stretches its texture at wide widths;
+-- UIPanelButtonTemplate2 keeps fixed caps and stretches only the middle section.
+--
+-- Keep this control inside the usable interior of the 220px quest frame instead
+-- of placing it over the dialog-frame border. The backdrop uses a 32px edge, so
+-- a 20px horizontal inset and 20px bottom inset give the footer clear breathing
+-- room while preserving enough width for the localized label.
+--
+-- Template2 resolves $parentLeft/Middle/Right through the global frame name, so
+-- the button must be named rather than anonymous.
+local QUEST_FOOTER_BUTTON_WIDTH = FRAME_WIDTH - 40
+local QUEST_FOOTER_BOTTOM_INSET = 20
+UI_Main.CheckCompletedQuestsButton = CreateElement("Button", "AtlasCFMQuestCheckCompletedQuestsButton", frame, "UIPanelButtonTemplate2", QUEST_FOOTER_BUTTON_WIDTH, 20,
+    { "BOTTOM", 0, QUEST_FOOTER_BOTTOM_INSET }, L["Check Completed Quests"])
 UI_Main.CheckCompletedQuestsButton:SetScript("OnClick", function()
     SendChatMessage(".queststatus")
     this:Hide()
