@@ -79,7 +79,8 @@ Overview: Atlas‑CFM is a dungeon map browser with an integrated loot panel and
 
 8) First Run
 - On the first run, a setup prompt may be shown once
-- AtlasCFMCharDB.FirstTime controls the one‑time greeting behavior
+- AtlasCFMCharDB.FirstTime controls only the per-character one-time greeting behavior
+- Account-wide AtlasCFMOptions are migrated non-destructively: missing settings receive defaults, while existing choices are preserved
 
 9) FAQ
 - The window is invisible

@@ -467,6 +467,8 @@ local function NavigateFromSourcePage(sourcePage)
 	-- This handles menu pages like crafting, sets, etc.
 	if not string.find(sourcePage, "|") then
 		if AtlasCFM.DataResolver.IsLootTableAvailable(sourcePage) then
+			FauxScrollFrame_SetOffset(AtlasCFMLootScrollBar, 0)
+			AtlasCFMLootScrollBarScrollBar:SetValue(0)
 			AtlasCFMLootItemsFrame.StoredElement = sourcePage
 			AtlasCFMLootItemsFrame.StoredMenu = nil
 			AtlasCFMLootItemsFrame.activeElement = nil
@@ -519,6 +521,8 @@ local function NavigateFromSourcePage(sourcePage)
 	end
 
 	-- Set target boss and instance
+	FauxScrollFrame_SetOffset(AtlasCFMLootScrollBar, 0)
+	AtlasCFMLootScrollBarScrollBar:SetValue(0)
 	AtlasCFMLootItemsFrame.StoredElement = bossName
 	AtlasCFMLootItemsFrame.StoredMenu = instanceKey
 
@@ -903,8 +907,9 @@ function AtlasCFM.Interactions.MenuItem_OnClick(button)
 		AtlasCFMLoot_ShowContainerFrame()
 		return
 	end
-	-- Reset scroll position to top
+	-- Reset both FauxScroll state and the underlying scrollbar.
 	FauxScrollFrame_SetOffset(AtlasCFMLootScrollBar, 0)
+	AtlasCFMLootScrollBarScrollBar:SetValue(0)
 	-- Get the table source and data ID
 	local dataID = this.name_orig or this.name
 	local TableSource = this.lootpage

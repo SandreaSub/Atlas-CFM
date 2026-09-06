@@ -225,6 +225,18 @@ function AtlasCFM.LootBrowserUI.ScrollBarLootUpdate()
 	--Load data for the current clicked element line
 	local dataID = AtlasCFMLootItemsFrame.StoredElement
 
+	-- The global loot suitability filter (Class / Available) is intended for
+	-- equippable loot browsing.  Crafting pages describe recipes, not a list
+	-- of gear the current character can equip right now.  Applying the filter
+	-- there made recipes disappear progressively as their result items finished
+	-- loading from the item cache (especially visible on the three Leatherworking
+	-- specialization pages).  Resolve the page category once per repaint and
+	-- keep all crafting recipes visible.
+	local isCraftingPage = false
+	if type(dataID) == "string" and AtlasCFM.LootUtils and AtlasCFM.LootUtils.GetMetaCategoryForMenu then
+		isCraftingPage = AtlasCFM.LootUtils.GetMetaCategoryForMenu(dataID) == L["Crafting"]
+	end
+
 	-- Hide sort dropdown by default if we're not in WishList
 	if AtlasCFMLootWishListSortDropDown then
 		if dataID == "WishList" then
@@ -622,7 +634,7 @@ function AtlasCFM.LootBrowserUI.ScrollBarLootUpdate()
 
 						-- Apply loot filter
 						local filterMode = AtlasCFMOptions.LootFilterMode or 0
-						if filterMode > 0 and itemID and itemID > 0 then
+						if not isCraftingPage and filterMode > 0 and itemID and itemID > 0 then
 							if not AtlasCFM.ItemDB.IsItemSuitable(itemID, filterMode) then
 								shouldShow = false
 							end

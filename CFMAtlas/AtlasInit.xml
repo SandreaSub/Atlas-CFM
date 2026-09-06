@@ -15,6 +15,5 @@
 	<Include file="AtlaspfUI.lua"/>
 	<Include file="AtlasOptionsUI.lua"/>
 	<Include file="AtlasOptions.lua"/>
-	<Include file="AtlasVersion.lua"/>
 	<Include file="AtlasMapMarkers.lua"/>
 </Ui>

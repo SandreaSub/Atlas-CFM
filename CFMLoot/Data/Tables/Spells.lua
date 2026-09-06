@@ -18325,6 +18325,38 @@ AtlasCFM.SpellDB = {
 				{ 3372 },
 			},
 		},
+		[45878] = { --Dissolvent Poison
+			item = 54009,
+			reagents = {
+				{ 8924, 2 },
+				{ 2931, 3 },
+				{ 8925 },
+			},
+		},
+		[45882] = { --Dissolvent Poison II
+			item = 54010,
+			reagents = {
+				{ 8924, 3 },
+				{ 2931, 4 },
+				{ 8925 },
+			},
+		},
+		[51924] = { --Corrosive Poison
+			item = 47408,
+			reagents = {
+				{ 8924, 3 },
+				{ 5173, 3 },
+				{ 8925 },
+			},
+		},
+		[52576] = { --Corrosive Poison II
+			item = 47409,
+			reagents = {
+				{ 8924, 3 },
+				{ 5173, 3 },
+				{ 8925 },
+			},
+		},
 		[45999] = { --Honeycomb Delight
 			requires = L["Cooking Fire"],
 			item = 42186,

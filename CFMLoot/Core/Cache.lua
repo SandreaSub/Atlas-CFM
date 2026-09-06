@@ -1,268 +1,380 @@
 ---
---- Cache.lua - Item caching system for Atlas-CFM Loot
---- Provides efficient item caching utilities and memoization
---- Features:
---- • Asynchronous item caching with batched tooltip requests
---- • Memoization to avoid duplicate cache operations
---- • Fallback mechanisms for environments without timers
---- • Global cache management and cleanup
---- @compatible World of Warcraft 1.12
+--- Cache.lua - Centralized asynchronous item-cache manager for Atlas-CFM Loot
+---
+--- The original cache path could permanently mark a page as checked even when
+--- item data had not arrived yet. This manager keeps only live outstanding
+--- requests, deduplicates them globally, and never negative-caches an item.
+---
+--- ClassicAPI clients use C_Item.RequestLoadItemDataByID +
+--- ITEM_DATA_LOAD_RESULT. Stock/other 1.12 clients retain a throttled hidden
+--- tooltip fallback. No polling runs when there is no outstanding work.
+--- @compatible World of Warcraft 1.12 / Lua 5.0
 ---
 
 local _G = getfenv()
 AtlasCFM = _G.AtlasCFM or {}
 AtlasCFM.LootCache = AtlasCFM.LootCache or {}
 
--- Global cache of checked item sets
-if not AtlasCFMLOOT_CHECKED_SETS then
-    AtlasCFMLOOT_CHECKED_SETS = {}
-    AtlasCFMLOOT_CHECKED_SETS_COUNT = 0
+local LootCache = AtlasCFM.LootCache
+
+-- Live request state only. Entries are removed on success/failure/timeout.
+local pending = {}       -- itemID -> { attempts, firstRequest, lastRequest, queued }
+local queue = {}         -- FIFO item IDs waiting for an actual server/cache request
+local queueHead = 1
+local queueTail = 0
+local workerScheduled = false
+local pollScheduled = false
+local refreshScheduled = false
+local eventRegistered = false
+
+local REQUEST_BATCH = 4
+local REQUEST_SLICE_DELAY = 0.15
+local POLL_DELAY = 0.25
+local RETRY_AFTER = 1.50
+local MAX_ATTEMPTS = 3
+local REQUEST_TIMEOUT = 12.0
+
+local hiddenTooltip = nil
+
+local function Now()
+    if GetTime then return GetTime() end
+    return 0
 end
 
----
---- Creates stable hash string for a list of item IDs
---- Sorts item list to ensure reproducible hash generation
---- @param itemList table List of numeric item IDs
---- @return string Hash string for the item set
----
-local function CreateItemSetHash(itemList)
-    table.sort(itemList) -- Stable order for reproducible hash
-    return table.concat(itemList, ",")
+local function IsCached(itemID)
+    if not itemID or itemID <= 0 then return true end
+    return GetItemInfo and GetItemInfo(itemID) ~= nil
 end
 
----
---- Periodic memo cache cleanup to avoid unbounded growth
---- Resets cache when it exceeds maximum size threshold
---- @return nil
----
-local function CleanupMemoCache()
-    if AtlasCFMLOOT_CHECKED_SETS_COUNT > 100 then
-        AtlasCFMLOOT_CHECKED_SETS = {}
-        AtlasCFMLOOT_CHECKED_SETS_COUNT = 0
+local function HasPending()
+    for _ in pairs(pending) do return true end
+    return false
+end
+
+local function GetHiddenTooltip()
+    if hiddenTooltip then return hiddenTooltip end
+    local name = "AtlasCFMLootCacheRequestTooltip"
+    hiddenTooltip = _G[name]
+    if not hiddenTooltip then
+        hiddenTooltip = CreateFrame("GameTooltip", name, UIParent, "GameTooltipTemplate")
+        hiddenTooltip:SetOwner(WorldFrame or UIParent, "ANCHOR_NONE")
+        _G[name] = hiddenTooltip
+    end
+    return hiddenTooltip
+end
+
+local function QueueVisibleRefresh()
+    if refreshScheduled then return end
+    if not AtlasCFM.Timer or not AtlasCFM.Timer.Start then return end
+    refreshScheduled = true
+    AtlasCFM.Timer.Start(0.05, function()
+        refreshScheduled = false
+        if AtlasCFMLootItemsFrame and AtlasCFMLootItemsFrame:IsVisible()
+            and AtlasCFM.LootBrowserUI and AtlasCFM.LootBrowserUI.ScrollBarLootUpdate then
+            AtlasCFM.LootBrowserUI.ScrollBarLootUpdate()
+        end
+    end)
+end
+
+local eventFrame = CreateFrame("Frame", "AtlasCFMLootCacheEventFrame")
+eventFrame:SetScript("OnEvent", function()
+    if event ~= "ITEM_DATA_LOAD_RESULT" then return end
+    local itemID = tonumber(arg1)
+    if not itemID then return end
+
+    local state = pending[itemID]
+    if not state then return end
+
+    -- ClassicAPI versions in the wild have represented success as 1/0 or
+    -- 1/nil. Check explicitly so numeric 0 is never mistaken for truthy Lua.
+    local success = (arg2 == true or tonumber(arg2) == 1)
+    pending[itemID] = nil
+
+    if success or IsCached(itemID) then
+        QueueVisibleRefresh()
+    end
+end)
+
+local function EnsureEventRegistration()
+    if eventRegistered then return end
+    if C_Item and C_Item.RequestLoadItemDataByID then
+        local ok = pcall(eventFrame.RegisterEvent, eventFrame, "ITEM_DATA_LOAD_RESULT")
+        if ok then eventRegistered = true end
     end
 end
 
----
--- Forces the client to cache an item by touching its hyperlink via a hidden tooltip
--- This uses a hidden GameTooltip to request item info from the client cache/server.
--- @param itemID number Item ID to cache
--- @param attempts number Optional attempts count for repeated tries (default 1)
--- @return void
----
-function AtlasCFM.LootCache.ForceCacheItem(itemID, maxAttempts, callback)
-    if not itemID or itemID == 0 then
+local function DoRequest(itemID, state)
+    if not itemID or not state then return end
+    if IsCached(itemID) then
+        pending[itemID] = nil
+        QueueVisibleRefresh()
+        return
+    end
+
+    state.attempts = (state.attempts or 0) + 1
+    state.lastRequest = Now()
+    if not state.firstRequest then state.firstRequest = state.lastRequest end
+    state.queued = false
+
+    EnsureEventRegistration()
+
+    if C_Item and C_Item.RequestLoadItemDataByID then
+        -- Fire-and-forget. ITEM_DATA_LOAD_RESULT (plus the bounded poll below)
+        -- completes the request when the engine receives the item data.
+        pcall(C_Item.RequestLoadItemDataByID, itemID)
+    else
+        -- Vanilla-compatible fallback. SetHyperlink asks the client for an
+        -- uncached item, but requests are globally throttled by this manager.
+        local tooltip = GetHiddenTooltip()
+        if tooltip then
+            tooltip:ClearLines()
+            pcall(tooltip.SetHyperlink, tooltip, "item:" .. itemID .. ":0:0:0")
+        end
+    end
+end
+
+local ProcessQueue
+local PollPending
+
+local function ScheduleWorker(delay)
+    if workerScheduled then return end
+    if not AtlasCFM.Timer or not AtlasCFM.Timer.Start then return end
+    workerScheduled = true
+    AtlasCFM.Timer.Start(delay or 0, function()
+        workerScheduled = false
+        ProcessQueue()
+    end)
+end
+
+local function SchedulePoll()
+    if pollScheduled or not HasPending() then return end
+    if not AtlasCFM.Timer or not AtlasCFM.Timer.Start then return end
+    pollScheduled = true
+    AtlasCFM.Timer.Start(POLL_DELAY, function()
+        pollScheduled = false
+        PollPending()
+    end)
+end
+
+local function EnqueueExisting(itemID, state)
+    if not state or state.queued then return end
+    state.queued = true
+    queueTail = queueTail + 1
+    queue[queueTail] = itemID
+    ScheduleWorker(0)
+end
+
+ProcessQueue = function()
+    local processed = 0
+
+    while queueHead <= queueTail and processed < REQUEST_BATCH do
+        local itemID = queue[queueHead]
+        queue[queueHead] = nil
+        queueHead = queueHead + 1
+
+        local state = pending[itemID]
+        if state then
+            state.queued = false
+            DoRequest(itemID, state)
+        end
+        processed = processed + 1
+    end
+
+    if queueHead <= queueTail then
+        ScheduleWorker(REQUEST_SLICE_DELAY)
+    else
+        -- Compact the queue after a completed pass. Do not use table.remove(1)
+        -- on this old client; resetting the sparse FIFO is O(1).
+        queue = {}
+        queueHead = 1
+        queueTail = 0
+    end
+
+    SchedulePoll()
+end
+
+PollPending = function()
+    local now = Now()
+    local refreshed = false
+
+    for itemID, state in pairs(pending) do
+        if IsCached(itemID) then
+            pending[itemID] = nil
+            refreshed = true
+        else
+            local firstRequest = state.firstRequest or now
+            local lastRequest = state.lastRequest or 0
+            local attempts = state.attempts or 0
+
+            if (now - firstRequest) >= REQUEST_TIMEOUT then
+                -- Never mark the item as permanently missing. Dropping only the
+                -- live request lets a later page-open attempt it again.
+                pending[itemID] = nil
+            elseif attempts < MAX_ATTEMPTS and (now - lastRequest) >= RETRY_AFTER then
+                EnqueueExisting(itemID, state)
+            end
+        end
+    end
+
+    if refreshed then QueueVisibleRefresh() end
+    if HasPending() then SchedulePoll() end
+end
+
+local function AddItemID(out, seen, itemID)
+    itemID = tonumber(itemID)
+    if not itemID or itemID <= 0 or seen[itemID] then return end
+    seen[itemID] = true
+    table.insert(out, itemID)
+end
+
+local function AddCraftResult(out, seen, spellID, kind)
+    if not AtlasCFM.SpellDB or not spellID then return false end
+    local data = nil
+
+    if kind == "enchant" then
+        data = AtlasCFM.SpellDB.enchants and AtlasCFM.SpellDB.enchants[spellID]
+    elseif kind == "spell" then
+        data = AtlasCFM.SpellDB.craftspells and AtlasCFM.SpellDB.craftspells[spellID]
+    else
+        data = (AtlasCFM.SpellDB.enchants and AtlasCFM.SpellDB.enchants[spellID]) or
+            (AtlasCFM.SpellDB.craftspells and AtlasCFM.SpellDB.craftspells[spellID])
+    end
+
+    if data then
+        local resultItem = AtlasCFM.Server and AtlasCFM.Server.GetDataField
+            and AtlasCFM.Server.GetDataField(data, "item") or data.item
+        if resultItem then AddItemID(out, seen, resultItem) end
+        return true
+    end
+    return false
+end
+
+local function CollectItems(dataSource, out, seen, forceItems)
+    if type(dataSource) ~= "table" then return end
+    local n = table.getn(dataSource)
+
+    for i = 1, n do
+        local element = dataSource[i]
+        local t = type(element)
+
+        if t == "number" then
+            AddItemID(out, seen, element)
+        elseif t == "table" then
+            -- Respect current-server visibility before touching any IDs.
+            local visible = not AtlasCFM.Server or not AtlasCFM.Server.IsVisible or AtlasCFM.Server.IsVisible(element)
+            if visible then
+                local id = element.id or element[1]
+                local itemType = element._wlType or element[4]
+                local elType = AtlasCFM.Server and AtlasCFM.Server.GetDataField
+                    and AtlasCFM.Server.GetDataField(element, "type") or element.type
+                local skill = AtlasCFM.Server and AtlasCFM.Server.GetDataField
+                    and AtlasCFM.Server.GetDataField(element, "skill") or element.skill
+
+                if id then
+                    if forceItems then
+                        AddItemID(out, seen, id)
+                    elseif itemType == "spell" or itemType == "enchant" then
+                        if not AddCraftResult(out, seen, id, itemType) then
+                            -- Search rows can legitimately contain an ordinary
+                            -- item with no SpellDB record.
+                            AddItemID(out, seen, id)
+                        end
+                    elseif elType == "spell" or elType == "enchant" then
+                        if not AddCraftResult(out, seen, id, elType) then
+                            AddItemID(out, seen, id)
+                        end
+                    elseif elType == "item" then
+                        AddItemID(out, seen, id)
+                    elseif skill ~= nil then
+                        -- Profession pages use spell IDs for rows with skill data.
+                        -- Only cache a result item when SpellDB confirms the ID as
+                        -- a craft/enchant; never query the spell ID as an item.
+                        AddCraftResult(out, seen, id, nil)
+                    elseif element.id == nil and element[1] ~= nil then
+                        -- Reagent tuple { itemID, quantity }.
+                        AddItemID(out, seen, id)
+                    else
+                        -- Ordinary Atlas item row.
+                        AddItemID(out, seen, id)
+                    end
+                end
+
+                if element.container then
+                    CollectItems(element.container, out, seen, true)
+                end
+            end
+        end
+    end
+end
+
+local function QueueItem(itemID)
+    if IsCached(itemID) then return true end
+
+    local state = pending[itemID]
+    if not state then
+        state = { attempts = 0, firstRequest = Now(), lastRequest = 0, queued = false }
+        pending[itemID] = state
+    end
+    EnqueueExisting(itemID, state)
+    return false
+end
+
+--- Request one item without creating a separate retry loop.
+function LootCache.ForceCacheItem(itemID, maxAttempts, callback)
+    itemID = tonumber(itemID)
+    if not itemID or itemID <= 0 then
         if callback then callback(false) end
         return false
     end
 
-    if GetItemInfo(itemID) then
+    if IsCached(itemID) then
         if callback then callback(true) end
         return true
     end
 
-    maxAttempts = maxAttempts or 3
-    local attempts = 0
-
-    local function tryCache()
-        if GetItemInfo(itemID) then
-            if callback then callback(true) end
-            return
-        end
-
-        -- Use a hidden tooltip to request item data from server
-        AtlasCFMLootTooltip:SetHyperlink("item:" .. itemID .. ":0:0:0")
-        attempts = attempts + 1
-
-        if attempts < maxAttempts then
-            -- Wait for client to receive data before retrying (0.15s is safer for server latency)
-            AtlasCFM.Timer.Start(0.15, tryCache)
+    QueueItem(itemID)
+    if callback then
+        if AtlasCFM.Timer and AtlasCFM.Timer.Start then
+            AtlasCFM.Timer.Start(0.05, function()
+                callback(IsCached(itemID))
+            end)
         else
-            if callback then callback(false) end
+            callback(false)
         end
     end
-
-    tryCache()
+    return false
 end
 
----
--- Public wrapper that proxies to the internal CacheAllItems defined in AtlasCFMLoot.lua during migration.
--- This keeps existing modules working while CacheAllItems remains local in AtlasCFMLoot.lua.
--- @param dataSource table Loot data to cache
--- @param callback function Optional callback to invoke after caching completes
--- @return void
--- @usage AtlasCFM.LootCache.CacheAllItems(lootData, function() PrintA("Caching complete") end)
--- @note Prefer this wrapper over direct CacheAllItems to get fallback and diagnostics in non-Core callers.
----
-function AtlasCFM.LootCache.CacheAllItems(dataSource, callback)
-    -- Unify caching logic here to decouple external callers from internal implementation
-    CleanupMemoCache()
-    if not dataSource or type(dataSource) ~= "table" then
+--- Request all real item IDs represented by a loot-data list.
+--- The callback means "requests have been queued; render the page now", not
+--- "every server response has arrived". Successful async responses repaint the
+--- visible page progressively.
+function LootCache.CacheAllItems(dataSource, callback)
+    if type(dataSource) ~= "table" then
         if callback then callback() end
         return
     end
 
-    -- Collect all item IDs for caching
-    local itemsToCache = {}
-    local n = table.getn(dataSource)
-    for i = 1, n do
-        local item = dataSource[i]
-        local itemID = nil
-        if item then
-            if type(item) == "table" then
-                if item.id then
-                    itemID = item.id
-                    -- Map spells/enchants to item ids when needed (item database format)
-                    if item.skill and item.type ~= "item" then
-                        if AtlasCFM and AtlasCFM.SpellDB and AtlasCFM.SpellDB.enchants and AtlasCFM.SpellDB.enchants[itemID] then
-                            itemID = AtlasCFM.SpellDB.enchants[itemID].item
-                        elseif AtlasCFM and AtlasCFM.SpellDB and AtlasCFM.SpellDB.craftspells and AtlasCFM.SpellDB.craftspells[itemID] then
-                            itemID = AtlasCFM.SpellDB.craftspells[itemID].item
-                        end
-                    end
-                elseif item[1] then
-                    itemID = item[1]
-                    -- Map spells/enchants to item ids when needed (search result format)
-                    local itemType = item[4]
-                    if itemType == "spell" or itemType == "enchant" then
-                        if AtlasCFM and AtlasCFM.SpellDB then
-                            if itemType == "enchant" and AtlasCFM.SpellDB.enchants and AtlasCFM.SpellDB.enchants[itemID] then
-                                itemID = AtlasCFM.SpellDB.enchants[itemID].item
-                            elseif itemType == "spell" and AtlasCFM.SpellDB.craftspells and AtlasCFM.SpellDB.craftspells[itemID] then
-                                itemID = AtlasCFM.SpellDB.craftspells[itemID].item
-                            end
-                        end
-                    end
-                end
-            elseif type(item) == "number" then
-                itemID = item
-            end
-            if itemID and itemID ~= 0 then
-                table.insert(itemsToCache, itemID)
-            end
+    local items = {}
+    local seen = {}
+    CollectItems(dataSource, items, seen, false)
+
+    for i = 1, table.getn(items) do
+        QueueItem(items[i])
+    end
+
+    if callback then
+        if AtlasCFM.Timer and AtlasCFM.Timer.Start then
+            AtlasCFM.Timer.Start(0.05, callback)
+        else
+            callback()
         end
     end
+end
 
-    local totalToCache = table.getn(itemsToCache)
-    if totalToCache == 0 then
-        if callback then callback() end
-        return
-    end
-
-    -- Memoization: skip repeated sets
-    local itemsCopy = {}
-    local n = table.getn(itemsToCache)
-    for i = 1, n do itemsCopy[i] = itemsToCache[i] end
-    local setHash = CreateItemSetHash(itemsCopy)
-    if AtlasCFMLOOT_CHECKED_SETS[setHash] then
-        if callback then callback() end
-        return
-    end
-
-    -- Quick pre-check
-    local quickCheckCount = math.min(5, totalToCache)
-    local quickCachedCount = 0
-    for i = 1, quickCheckCount do
-        local itemID = itemsToCache[i]
-        if GetItemInfo(itemID) then
-            quickCachedCount = quickCachedCount + 1
-        end
-    end
-
-    -- Full check to collect uncached items
-    local uncachedItems = {}
-    for i = 1, totalToCache do
-        local itemID = itemsToCache[i]
-        if not GetItemInfo(itemID) then
-            table.insert(uncachedItems, itemID)
-        end
-    end
-
-    if table.getn(uncachedItems) == 0 then
-        if not AtlasCFMLOOT_CHECKED_SETS[setHash] then
-            AtlasCFMLOOT_CHECKED_SETS[setHash] = true
-            AtlasCFMLOOT_CHECKED_SETS_COUNT = AtlasCFMLOOT_CHECKED_SETS_COUNT + 1
-        end
-        if callback then callback() end
-        return
-    end
-
-    -- If timers are unavailable, fallback to force cache synchronously
-    if not AtlasCFM.Timer or not AtlasCFM.Timer.Start then
-        if not AtlasCFMLOOT_DEBUG_FALLBACK_CACHE_REPORTED then
-            PrintA("AtlasCFM.Timer not found, using fallback force cache")
-            AtlasCFMLOOT_DEBUG_FALLBACK_CACHE_REPORTED = true
-        end
-        local m = table.getn(uncachedItems)
-        for i = 1, m do
-            AtlasCFM.LootCache.ForceCacheItem(uncachedItems[i], 1)
-        end
-        if callback then callback() end
-        return
-    end
-
-    -- Batched tooltip-driven cache priming
-    local batchSize = 3
-    local maxIterations = 2
-    local iteration = 1
-
-    local tooltipName = "AtlasCFMLootHiddenTooltip_Batch"
-    local tooltip = _G[tooltipName]
-    if not tooltip then
-        tooltip = CreateFrame("GameTooltip", tooltipName, UIParent, "GameTooltipTemplate")
-        tooltip:SetOwner(UIParent, "ANCHOR_NONE")
-        _G[tooltipName] = tooltip
-    end
-
-    local function runIteration()
-        local idx = 1
-        local total = table.getn(uncachedItems)
-
-        local function processBatch()
-            local processed = 0
-            while processed < batchSize and idx <= total do
-                local itemID = uncachedItems[idx]
-                tooltip:ClearLines()
-                tooltip:SetHyperlink("item:" .. itemID .. ":0:0:0")
-                idx = idx + 1
-                processed = processed + 1
-            end
-
-            if idx <= total then
-                local delay = (iteration == 1) and 0.07 or 0.09
-                AtlasCFM.Timer.Start(delay, function()
-                    processBatch()
-                end)
-            else
-                local delay = (iteration == 1) and 0.07 or 0.09
-                AtlasCFM.Timer.Start(delay, function()
-                    local remaining = {}
-                    for i = 1, total do
-                        local id = uncachedItems[i]
-                        if not GetItemInfo(id) then
-                            table.insert(remaining, id)
-                        end
-                    end
-                    uncachedItems = remaining
-
-                    if table.getn(uncachedItems) == 0 or iteration >= maxIterations then
-                        if not AtlasCFMLOOT_CHECKED_SETS[setHash] then
-                            AtlasCFMLOOT_CHECKED_SETS[setHash] = true
-                            AtlasCFMLOOT_CHECKED_SETS_COUNT = AtlasCFMLOOT_CHECKED_SETS_COUNT + 1
-                        end
-                        if callback then callback() end
-                    else
-                        iteration = iteration + 1
-                        local nextDelay = (iteration == 1) and 0.07 or 0.09
-                        AtlasCFM.Timer.Start(nextDelay, function()
-                            runIteration()
-                        end)
-                    end
-                end)
-            end
-        end
-
-        processBatch()
-    end
-
-    runIteration()
+--- Small diagnostics helpers used only for safe/manual debugging.
+function LootCache.GetPendingCount()
+    local count = 0
+    for _ in pairs(pending) do count = count + 1 end
+    return count
 end

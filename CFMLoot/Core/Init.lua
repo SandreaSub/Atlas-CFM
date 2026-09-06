@@ -13,6 +13,12 @@ local tinsert = table.insert
 --- @usage Called automatically on VARIABLES_LOADED event via AtlasCFMLootInitFrame
 ---
 function AtlasCFMLoot_OnEvent()
+	-- Ensure global/per-character saved variables are valid without overwriting
+	-- any existing user settings.
+	if AtlasCFM.EnsureSavedOptions then
+		AtlasCFM.EnsureSavedOptions()
+	end
+
 	-- Initialize character database structure
 	AtlasCFMLoot_InitializeCharacterDatabase()
 

@@ -1649,6 +1649,22 @@ for i = 15, 23 do
     kQuestInstanceData.BlackrockDepths.Horde[i] = kQuestInstanceData.BlackrockDepths.Alliance[i]
 end
 
+kQuestInstanceData.BlackrockDepths.Alliance[24] = {
+    Servers = { AtlasCFM.Server.TURTLE1 },
+    Title = "Beckoned by the Hateful Depths",
+    Id = 40920,
+    Level = 60,
+    Attain = 55,
+    Aim = "Acquire a Hammer of Hate and a Hammer of the Depths and bring them to the Mysterious Mailbox.",
+    Location = "Mysterious Mailbox (Deadwind Pass " .. yellow .. "56.2,79.9" .. white .. ")",
+    Note = red ..
+        "Hardcore only" ..
+        white .. ": The Hammer of the Depths comes from Emperor Dagran Thaurissan in Blackrock Depths. The Hammer of Hate comes from High Foreman Bargul Blackhammer in Hateforge Quarry.",
+    Prequest = "A Focus of the Ancients",
+    Folgequest = "Drenched in Draconic Blood",
+}
+kQuestInstanceData.BlackrockDepths.Horde[24] = kQuestInstanceData.BlackrockDepths.Alliance[24]
+
 --------------- Blackwing Lair ---------------
 kQuestInstanceData.BlackwingLair = {
     Story = {
@@ -2395,6 +2411,21 @@ kQuestInstanceData.BlackrockSpireLower.Horde[18] = {
     }
 }
 
+kQuestInstanceData.BlackrockSpireLower.Alliance[16] = {
+    Servers = { AtlasCFM.Server.TURTLE1 },
+    Title = "Eye for an Eye",
+    Id = 40917,
+    Level = 60,
+    Attain = 55,
+    Aim = "Acquire the Eye of Wyrmthalak and bring it to the Mysterious Mailbox.",
+    Location = "Mysterious Mailbox (Deadwind Pass " .. yellow .. "56.2,79.9" .. white .. ")",
+    Note = red ..
+        "Hardcore only" ..
+        white .. ": The Eye of Wyrmthalak comes from Overlord Wyrmthalak in Lower Blackrock Spire " .. yellow .. "[19]" .. white .. ".",
+    Folgequest = "The Stranger and the Potion",
+}
+kQuestInstanceData.BlackrockSpireLower.Horde[19] = kQuestInstanceData.BlackrockSpireLower.Alliance[16]
+
 --------------- Upper Blackrock Spire ---------------
 kQuestInstanceData.BlackrockSpireUpper = {
     Story =
@@ -2660,6 +2691,22 @@ kQuestInstanceData.BlackrockSpireUpper.Horde[10] = kQuestInstanceData.BlackrockS
 kQuestInstanceData.BlackrockSpireUpper.Horde[11] = kQuestInstanceData.BlackrockSpireUpper.Alliance[10]
 kQuestInstanceData.BlackrockSpireUpper.Horde[12] = kQuestInstanceData.BlackrockSpireUpper.Alliance[11]
 kQuestInstanceData.BlackrockSpireUpper.Horde[13] = kQuestInstanceData.BlackrockSpireUpper.Alliance[12]
+
+kQuestInstanceData.BlackrockSpireUpper.Alliance[13] = {
+    Servers = { AtlasCFM.Server.TURTLE1 },
+    Title = "Drenched in Draconic Blood",
+    Id = 40921,
+    Level = 60,
+    Attain = 55,
+    Aim = "Acquire a Dragonblood Heart and bring it to the Mysterious Mailbox.",
+    Location = "Mysterious Mailbox (Deadwind Pass " .. yellow .. "56.2,79.9" .. white .. ")",
+    Note = red ..
+        "Hardcore only" ..
+        white .. ": The Dragonblood Heart comes from General Drakkisath in Upper Blackrock Spire " .. yellow .. "[9]" .. white .. ".",
+    Prequest = "Beckoned by the Hateful Depths",
+    Folgequest = "Eternal Mortality",
+}
+kQuestInstanceData.BlackrockSpireUpper.Horde[14] = kQuestInstanceData.BlackrockSpireUpper.Alliance[13]
 
 --------------- Dire Maul (East) ---------------
 kQuestInstanceData.DireMaulEast = {
@@ -3267,6 +3314,22 @@ kQuestInstanceData.DireMaulWest.Horde[1] = {
 for i = 2, 21 do
     kQuestInstanceData.DireMaulWest.Horde[i] = kQuestInstanceData.DireMaulWest.Alliance[i]
 end
+
+kQuestInstanceData.DireMaulWest.Alliance[22] = {
+    Servers = { AtlasCFM.Server.TURTLE1 },
+    Title = "A Focus of the Ancients",
+    Id = 40919,
+    Level = 60,
+    Attain = 55,
+    Aim = "Acquire an Arcane Focus and bring it to the Mysterious Mailbox.",
+    Location = "Mysterious Mailbox (Deadwind Pass " .. yellow .. "56.2,79.9" .. white .. ")",
+    Note = red ..
+        "Hardcore only" ..
+        white .. ": The Arcane Focus is carried by Prince Tortheldrin in Dire Maul West " .. yellow .. "[7]" .. white .. ".",
+    Prequest = "The Stranger and the Potion",
+    Folgequest = "Beckoned by the Hateful Depths",
+}
+kQuestInstanceData.DireMaulWest.Horde[22] = kQuestInstanceData.DireMaulWest.Alliance[22]
 
 --------------- Maraudon ---------------
 kQuestInstanceData.Maraudon = {
@@ -4023,6 +4086,23 @@ kQuestInstanceData.RazorfenKraul.Alliance[5] = {
         ".\nA missão seguinte é diferente para cada raça. Sangue Ardente para Humanos, Coral de Ferro para Anões e Gnomos e Conchas Queimadas pelo Sol para Elfos Noturnos.", -- 1705, 1710, 1708 Prequest = "O Escudeiro",
     Folgequest = "(See Note)",
 }
+kQuestInstanceData.RazorfenKraul.Alliance[6] = {
+    Servers = { AtlasCFM.Server.TURTLE1 },
+    Title = "The Gnarled Bramblehide",
+    Id = 41759,
+    Level = 31,
+    Attain = 25,
+    Aim =
+    "Gather 3 Gnarled Brambleroots from the Bramblehide elementals within Razorfen Kraul for Calaran Windseeker at Thalanaar in Feralas.",
+    Location = "Calaran Windseeker (Feralas - Thalanaar " .. yellow .. "89,45" .. white .. ")",
+    Note =
+    "Gnarled Brambleroot is dropped by Bramblehide Rootshapers and Gnarled Bramblehides inside Razorfen Kraul.",
+    Rewards = {
+        Text = "Reward: Pick One",
+        { id = 41854 }, --Wildbranch Leggings, Cloth
+        { id = 41855 }, --Fenweave Gloves, Mail
+    }
+}
 kQuestInstanceData.RazorfenKraul.Horde[1] = kQuestInstanceData.RazorfenKraul.Alliance[1]
 kQuestInstanceData.RazorfenKraul.Horde[2] = {
     Title = "Willix, o Importador",
@@ -4085,8 +4165,8 @@ kQuestInstanceData.RazorfenKraul.Horde[6] = {
     Servers = { AtlasCFM.Server.TURTLE1 },
     Title = "Coração de Zarza Corrompido",
     Id = 41758,
-    Level = 30,
-    Attain = 20,
+    Level = 32,
+    Attain = 25,
     Aim =
     "Destrua a encarnação viva da corrupção natural nas profundezas de Razorfen Kraul e traga o Coração de Espinhos Corrompido para Kym Wildmane em Penhasco do Trovão.",
     Location = "Kym Juba Agreste (Penhasco do Trovão - O Elevado dos Anciãos " .. yellow .. "77,29" .. white .. ")",
@@ -4262,6 +4342,30 @@ kQuestInstanceData.ScarletMonasteryArmory.Horde[3] = {
     }
 }
 
+kQuestInstanceData.ScarletMonasteryArmory.Alliance[2] = {
+    Servers = { AtlasCFM.Server.TURTLE1 },
+    Title = "To Build a Pounder",
+    Id = 80401,
+    Level = 60,
+    Attain = 30,
+    Aim = "Collect a Thorium Tuned Servo from a Scarlet Myrmidon in Scarlet Monastery for Oglethorpe Obnoticus.",
+    Location = "Oglethorpe Obnoticus <Master Gnome Engineer> (Stranglethorn Vale - Booty Bay " ..
+        yellow .. "28.4,76.3" .. white .. ")",
+    Note = red ..
+        "(Engineers only)" ..
+        white ..
+        " Scarlet Myrmidons carrying the Thorium Tuned Servo can be found in the Armory and Cathedral. The quest also requires a Perfect Golem Core from Blackrock Depths and an Adamantite Rod from Stratholme.",
+    Prequest = "A Pounding Brain",
+    Rewards = {
+        Text = "Reward: Pick One",
+        { id = 81253 }, --Reinforced Red Pounder Mount
+        { id = 81252 }, --Reinforced Green Pounder Mount
+        { id = 81251 }, --Reinforced Blue Pounder Mount
+        { id = 81250 }, --Reinforced Black Pounder Mount
+    }
+}
+kQuestInstanceData.ScarletMonasteryArmory.Horde[4] = kQuestInstanceData.ScarletMonasteryArmory.Alliance[2]
+
 --------------- SM: Cathedral ---------------
 kQuestInstanceData.ScarletMonasteryCathedral = {
     Story = kQuestInstanceData.ScarletMonasteryLibrary.Story,
@@ -4310,6 +4414,27 @@ kQuestInstanceData.ScarletMonasteryCathedral.Alliance[3] = {
 }
 kQuestInstanceData.ScarletMonasteryCathedral.Horde[1] = kQuestInstanceData.ScarletMonasteryLibrary.Horde[1]
 kQuestInstanceData.ScarletMonasteryCathedral.Horde[2] = kQuestInstanceData.ScarletMonasteryLibrary.Horde[2]
+
+kQuestInstanceData.ScarletMonasteryCathedral.Alliance[4] = kQuestInstanceData.ScarletMonasteryArmory.Alliance[2]
+kQuestInstanceData.ScarletMonasteryCathedral.Horde[3] = kQuestInstanceData.ScarletMonasteryArmory.Alliance[2]
+kQuestInstanceData.ScarletMonasteryCathedral.Alliance[5] = {
+    Servers = { AtlasCFM.Server.TURTLE1 },
+    Title = "Gold Is The Goblin's Heart",
+    Id = 41305,
+    Level = 40,
+    Attain = 32,
+    Aim = "Bring Tacknazz Copperfire a Shimmering Gold Necklace and a Giant Scarlet Ruby from the Scarlet Monastery.",
+    Location = "Tacknazz Copperfire (Durotar - Sparkwater Port " .. yellow .. "57.3,26.5" .. white .. ")",
+    Note = red ..
+        "(Requires 200 Jewelcrafting)" ..
+        white .. " The Giant Scarlet Ruby is carried by High Inquisitor Whitemane in the Cathedral.",
+    Prequest = "Lost In Ratchet -> A Friend Of A Friend?",
+    Rewards = {
+        Text = "Reward:",
+        { id = 70139 }, --Plans: Delicate Mithril Amulet
+    }
+}
+kQuestInstanceData.ScarletMonasteryCathedral.Horde[4] = kQuestInstanceData.ScarletMonasteryCathedral.Alliance[5]
 
 --------------- SM: Graveyard ---------------
 kQuestInstanceData.ScarletMonasteryGraveyard = {
@@ -4552,6 +4677,22 @@ kQuestInstanceData.Scholomance.Horde[7] = createInheritedQuest(
         Location = "Alexei Barov (Clareiras de Tirisfal - A Muralha " .. yellow .. "80,73" .. white .. ")",
     }
 )
+
+kQuestInstanceData.Scholomance.Alliance[13] = {
+    Servers = { AtlasCFM.Server.TURTLE1 },
+    Title = "The Stranger and the Potion",
+    Id = 40918,
+    Level = 60,
+    Attain = 55,
+    Aim = "Acquire a Necromantic Potion and bring it to the Mysterious Mailbox.",
+    Location = "Mysterious Mailbox (Deadwind Pass " .. yellow .. "56.2,79.9" .. white .. ")",
+    Note = red ..
+        "Hardcore only" ..
+        white .. ": The Necromantic Potion is obtained from Darkmaster Gandling in Scholomance.",
+    Prequest = "Eye for an Eye",
+    Folgequest = "A Focus of the Ancients",
+}
+kQuestInstanceData.Scholomance.Horde[13] = kQuestInstanceData.Scholomance.Alliance[13]
 
 --------------- Shadowfang Keep ---------------
 kQuestInstanceData.ShadowfangKeep = {
@@ -5180,6 +5321,8 @@ kQuestInstanceData.Stratholme.Horde[19] = {
 }
 kQuestInstanceData.Stratholme.Horde[20] = kQuestInstanceData.Stratholme.Alliance[19]
 kQuestInstanceData.Stratholme.Horde[21] = kQuestInstanceData.Stratholme.Alliance[21]
+
+kQuestInstanceData.Stratholme.Horde[22] = kQuestInstanceData.Stratholme.Alliance[20]
 
 --------------- Ruins of Ahn'Qiraj ---------------
 kQuestInstanceData.TheRuinsofAhnQiraj = {
@@ -7338,7 +7481,7 @@ kQuestInstanceData.TheCrescentGrove.Alliance[1] = {
     Title = "O Groveweald desenfreado",
     Id = 40089,
     Level = 33,
-    Attain = 26,
+    Attain = 32,
     Aim =
     "Aventure-se no Bosque Crescente e colete 8 Insígnias de Groveweald dos pelursos lá dentro para Grol, o Exilado.",
     Location = "Grol, o Exilado (Vale Gris " .. yellow .. "56,59" .. white .. ")",
@@ -7348,7 +7491,7 @@ kQuestInstanceData.TheCrescentGrove.Alliance[2] = {
     Title = "Os Anciãos Insensatos",
     Id = 40090,
     Level = 34,
-    Attain = 26,
+    Attain = 32,
     Aim = "Traga as patas do Ancião 'One Eye' e do Ancião Blackmaw de dentro do Bosque Crescente para Grol, o Exilado.",
     Location = "Grol, o Exilado (Vale Gris " .. yellow .. "56,59" .. white .. ")",
     Note = "Dropa de furbolgs perto do primeiro chefe.",
@@ -7361,7 +7504,7 @@ kQuestInstanceData.TheCrescentGrove.Alliance[3] = {
     Title = "O Bosque Crescente",
     Id = 40091,
     Level = 37,
-    Attain = 28,
+    Attain = 32,
     Aim = "Destrua a fonte de corrupção dentro de Crescent Grove e retorne para Denatharion em Teldrassil.",
     Location = "Denatharion <Druid Trainer> (Teldrassil - Darnassus " .. yellow .. "24,48" .. white .. ")",
     Note = "Você precisa matar o último chefe.",
@@ -7377,7 +7520,7 @@ kQuestInstanceData.TheCrescentGrove.Alliance[4] = {
     Title = "Marreta de Kalanar",
     Id = 40326,
     Level = 33,
-    Attain = 25,
+    Attain = 32,
     Aim =
     "Viaje para Crescent Grove e encontre a casa incendiada de Kalanar Brightshine. Em seguida, recupere o Marreta de Kalanar e devolva-o para ele em Astranaar.",
     Location = "Kalanar Brilhaluz (Vale Gris " .. yellow .. "36,52" .. white .. ")",
@@ -7402,6 +7545,22 @@ kQuestInstanceData.TheCrescentGrove.Horde[3] = {
         { id = 60216 }, --Hat of Forest Medicine Head, Cloth
     }
 }
+
+kQuestInstanceData.TheCrescentGrove.Alliance[5] = {
+    Servers = { AtlasCFM.Server.TURTLE1 },
+    Title = "Reduced to Madness",
+    Id = 55032,
+    Level = 24,
+    Attain = 16,
+    Aim = "Slay 3 Foulweald Shamans for Grol the Exile.",
+    Location = "Grol the Exile (Ashenvale " .. yellow .. "56.1,59.2" .. white .. ")",
+    Note = "Foulweald Shamans can be found around Greenpaw Village in Ashenvale and inside the Crescent Grove.",
+    Rewards = {
+        Text = "Reward:",
+        { id = 81340 }, --Greenpaw Medallion
+    }
+}
+kQuestInstanceData.TheCrescentGrove.Horde[4] = kQuestInstanceData.TheCrescentGrove.Alliance[5]
 
 --------------- Karazhan Crypt ---------------
 kQuestInstanceData.KarazhanCrypt = {
@@ -7698,6 +7857,22 @@ kQuestInstanceData.HateforgeQuarry.Horde[6] = {
     }
 }
 
+kQuestInstanceData.HateforgeQuarry.Alliance[8] = {
+    Servers = { AtlasCFM.Server.TURTLE1 },
+    Title = "Beckoned by the Hateful Depths",
+    Id = 40920,
+    Level = 60,
+    Attain = 55,
+    Aim = "Acquire a Hammer of Hate and a Hammer of the Depths and bring them to the Mysterious Mailbox.",
+    Location = "Mysterious Mailbox (Deadwind Pass " .. yellow .. "56.2,79.9" .. white .. ")",
+    Note = red ..
+        "Hardcore only" ..
+        white .. ": The Hammer of Hate comes from High Foreman Bargul Blackhammer in Hateforge Quarry. The Hammer of the Depths comes from Emperor Dagran Thaurissan in Blackrock Depths.",
+    Prequest = "A Focus of the Ancients",
+    Folgequest = "Drenched in Draconic Blood",
+}
+kQuestInstanceData.HateforgeQuarry.Horde[7] = kQuestInstanceData.HateforgeQuarry.Alliance[8]
+
 --------------- Stormwind Vault ---------------
 kQuestInstanceData.StormwindVault = {
     Story =
@@ -7710,7 +7885,7 @@ kQuestInstanceData.StormwindVault.Alliance[1] = {
     Title = "Recuperando Algemas do Vault",
     Id = 40426,
     Level = 63,
-    Attain = 55,
+    Attain = 58,
     Aim =
     "Dentro do Cofre de Ventobravo, mate Construtos Rúnicos por 2 Algemas Rúnicas e devolva-os para Koli Steamheart.",
     Location = "Koli Coração a Vapor (Ventobravo " .. yellow .. "54,47" .. white .. ")",
@@ -7720,7 +7895,7 @@ kQuestInstanceData.StormwindVault.Alliance[2] = {
     Title = "Finalizando Arc'Tiras",
     Id = 40427,
     Level = 63,
-    Attain = 55,
+    Attain = 58,
     Aim =
     "Aventure-se nas profundezas do Cofre de Ventobravo, encontre Arc'tiras e mate-o pelo bem de Ventobravo. Quando terminar, volte para Pepin Ainsworth.",
     Location = "Pepin Ainsworth (Ventobravo " .. yellow .. "54,47" .. white .. ")",
@@ -7766,6 +7941,28 @@ kQuestInstanceData.StormwindVault.Alliance[4] = {
 for i = 1, 3 do
     kQuestInstanceData.StormwindVault.Horde[i] = kQuestInstanceData.StormwindVault.Alliance[i]
 end
+
+kQuestInstanceData.StormwindVault.Horde[1] = {
+    Servers = { AtlasCFM.Server.TURTLE1 },
+    Title = "Recovering Vault Shackles",
+    Id = 41138,
+    Level = 63,
+    Attain = 58,
+    Aim = "Within the Stormwind Vault, slay Runic Constructs for 2 Runic Shackles and return them to Pepin Ainsworth.",
+    Location = "Pepin Ainsworth (Stormwind " .. yellow .. "61.8,61.0" .. white .. ")",
+    Note = "You need to kill the Runic Construct mobs.",
+}
+kQuestInstanceData.StormwindVault.Horde[2] = {
+    Servers = { AtlasCFM.Server.TURTLE1 },
+    Title = "Ending Arc'Tiras",
+    Id = 41139,
+    Level = 63,
+    Attain = 58,
+    Aim = "Venture deep within the Stormwind Vault, find Arc'tiras, and slay him. When done, return to Koli Steamheart.",
+    Location = "Koli Steamheart (Stormwind " .. yellow .. "61.8,60.9" .. white .. ")",
+    Note = "You need to kill the last boss.",
+    Rewards = kQuestInstanceData.StormwindVault.Alliance[2].Rewards,
+}
 
 --------------- Ostarius ---------------
 kQuestInstanceData.Ostarius = {
@@ -7888,7 +8085,7 @@ kQuestInstanceData.GilneasCity.Alliance[5] = {
 kQuestInstanceData.GilneasCity.Alliance[6] = {
     Title = "A Queda e Ascensão de Greymane",
     Id = 40956,
-    Level = 42,
+    Level = 46,
     Attain = 35,
     Aim = "Salve 'Genn e recupere a Coroa Greymane para Lord Darius Ravenwood em Vila dos Corvos em Gilneas.",
     Location = "Lorde Darius Ravenwood (Gilneas - Ravenshire (main building) " .. yellow .. "58.4,67.6" .. white .. ")",
@@ -8731,7 +8928,7 @@ kQuestInstanceData.DragonmawRetreat.Alliance[5] = {
 }
 kQuestInstanceData.DragonmawRetreat.Alliance[6] = {
     Title = "Carta de Korlag Doomsong",
-    Id = 41657,
+    Id = 41883,
     Level = 35,
     Attain = 30,
     Aim = "Entregue a carta para alguém de alta autoridade nos Alcances Sombrios.",
@@ -8799,6 +8996,7 @@ end
 kQuestInstanceData.DragonmawRetreat.Horde[6] = createInheritedQuest(
     kQuestInstanceData.DragonmawRetreat.Alliance[6],
     {
+        Id = 41657,
         Note = "Entregue para 'Comandante Aggnash' em Recônditos Sombrios - Posto Lâmina Estilhaçada - " ..
             yellow ..
             "60, 30" ..

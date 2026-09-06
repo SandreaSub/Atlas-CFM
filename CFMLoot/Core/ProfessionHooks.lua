@@ -105,11 +105,16 @@ function AtlasCFM.ProfessionHooks.UpdateSideTabs(frame)
             bg:SetPoint("TOPLEFT", -3, 11)
             tab.bg = bg
 
-            tab:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square")
-            tab:GetHighlightTexture():SetBlendMode("ADD")
+            -- No mouseover highlight on profession side tabs.
+            tab:SetHighlightTexture("")
 
+            -- No selected-state yellow overlay/border either.
+            -- Keep a valid checked texture object, but make it fully invisible so
+            -- the profession icon and tab background remain unchanged.
             tab:SetCheckedTexture("Interface\\Buttons\\CheckButtonHilight")
-            tab:GetCheckedTexture():SetBlendMode("ADD")
+            local checkedTexture = tab:GetCheckedTexture()
+            checkedTexture:SetBlendMode("BLEND")
+            checkedTexture:SetAlpha(0)
 
             tab:SetScript("OnEnter", function()
                 GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
@@ -155,6 +160,22 @@ function AtlasCFM.ProfessionHooks.UpdateSideTabs(frame)
         tab:SetChecked(currentName == prof.name)
 
         tab:SetScript("OnClick", function()
+            -- Clicking the profession that is already open must not toggle the
+            -- Blizzard profession window closed. CastSpellByName() acts as a
+            -- toggle for an active profession, so detect that case first and
+            -- leave the current window/state untouched.
+            local activeName = nil
+            if TradeSkillFrame and TradeSkillFrame:IsVisible() then
+                activeName = GetTradeSkillLine()
+            elseif CraftFrame and CraftFrame:IsVisible() then
+                activeName = GetCraftDisplaySkillLine()
+            end
+
+            if activeName == this.spellName then
+                this:SetChecked(true)
+                return
+            end
+
             -- Flag to prevent session termination
             AtlasCFM.ProfessionHooks.IsSwitching = true
 
@@ -587,21 +608,31 @@ function AtlasCFM.ProfessionHooks.CreateAtlasButton(frame)
                         elseif AtlasCFM.LootBrowserUI.ShowLootPage then
                             AtlasCFM.LootBrowserUI.ShowLootPage(foundPage)
                         else
-                            -- Fallback implementation if ShowLootPage is missing
+                            -- Cache-aware fallback for profession pages that do
+                            -- not have a legacy global page function.
                             if AtlasCFMLootItemsFrame then
+                                FauxScrollFrame_SetOffset(AtlasCFMLootScrollBar, 0)
+                                AtlasCFMLootScrollBarScrollBar:SetValue(0)
                                 AtlasCFMLootItemsFrame.StoredElement = foundPage
-                                AtlasCFMLootItemsFrame.StoredMenu = nil -- Reset menu context if needed
+                                AtlasCFMLootItemsFrame.StoredMenu = nil
 
-                                -- Force update
-                                if AtlasCFM.LootBrowserUI.ScrollBarLootUpdate then
-                                    AtlasCFM.LootBrowserUI.ScrollBarLootUpdate()
-                                end
-
-                                -- Ensure frames are shown
                                 if AtlasCFMFrame and not AtlasCFMFrame:IsVisible() then
                                     AtlasCFMFrame:Show()
                                 end
                                 AtlasCFMLootItemsFrame:Show()
+
+                                local pageData = AtlasCFMLoot_Data and AtlasCFMLoot_Data[foundPage]
+                                if AtlasCFM.LootBrowserUI.ShowScrollBarLoading then
+                                    AtlasCFM.LootBrowserUI.ShowScrollBarLoading()
+                                end
+                                AtlasCFM.LootCache.CacheAllItems(pageData, function()
+                                    if AtlasCFM.LootBrowserUI.HideScrollBarLoading then
+                                        AtlasCFM.LootBrowserUI.HideScrollBarLoading()
+                                    end
+                                    if AtlasCFM.LootBrowserUI.ScrollBarLootUpdate then
+                                        AtlasCFM.LootBrowserUI.ScrollBarLootUpdate()
+                                    end
+                                end)
                             end
                         end
                     end

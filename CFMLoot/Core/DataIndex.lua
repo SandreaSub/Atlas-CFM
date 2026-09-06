@@ -74,18 +74,11 @@ function DataIndex.GetNamesFromID(id)
                     local _, _, stripped = string.find(name, ":%s*(.+)$")
                     if stripped then addName(stripped) end
                 end
-                local itemID = AtlasCFM.Server.GetDataField(db[id], "item")
-                if itemID then
-                    -- Use scanner to get item name (reliable even if not cached)
-                    scanner:SetOwner(WorldFrame, "ANCHOR_NONE")
-                    scanner:ClearLines()
-                    if pcall(scanner.SetHyperlink, scanner, "item:" .. itemID) then
-                        local textObj = _G["AtlasCFMDataIndexScannerTextLeft1"]
-                        if textObj then
-                            addName(textObj:GetText())
-                        end
-                    end
-                end
+                -- Do not touch the item cache while the startup index is running.
+                -- SpellDB already contains the craft/enchant name used for skill
+                -- matching; forcing result-item hyperlinks here can race the
+                -- client/server item cache during login. Result item names are
+                -- resolved later, on demand, by the loot cache/browser.
             end
         end
 
@@ -189,22 +182,55 @@ local function indexQuests(questList, instanceName)
     end
 end
 
-local function indexProfItems(spellList, profPages, typeName)
+-- Build a direct spellID -> profession page lookup in one pass.
+-- The old startup path searched every profession page for every SpellDB entry,
+-- which is O(spells * pages * page_items) and causes a large login hitch on 1.12.
+local function BuildProfessionLookup(profPages)
+    local lookup = {}
+
+    local function indexPageList(list, pageKey, profName)
+        if type(list) ~= "table" then return end
+        local n = table.getn(list)
+        for i = 1, n do
+            local el = list[i]
+            local id = type(el) == "table" and (el.id or el[1]) or el
+            local visible = type(el) ~= "table" or not AtlasCFM.Server or not AtlasCFM.Server.IsVisible or AtlasCFM.Server.IsVisible(el)
+            local isKnownSpell = type(id) == "number" and type(el) == "table" and el.skill ~= nil and AtlasCFM.SpellDB and
+                ((AtlasCFM.SpellDB.enchants and AtlasCFM.SpellDB.enchants[id]) or
+                 (AtlasCFM.SpellDB.craftspells and AtlasCFM.SpellDB.craftspells[id]))
+            if visible and isKnownSpell and not lookup[id] then
+                lookup[id] = { pageKey = pageKey, name = profName }
+            end
+            if visible and type(el) == "table" and el.container then
+                indexPageList(el.container, pageKey, profName)
+            end
+        end
+    end
+
+    for _, profEntry in ipairs(profPages) do
+        local pageKey = profEntry.pageKey
+        local page = AtlasCFMLoot_Data and AtlasCFMLoot_Data[pageKey]
+        if page then
+            indexPageList(page, pageKey, profEntry.name)
+        end
+    end
+
+    return lookup
+end
+
+local function indexProfItems(spellList, profLookup, typeName)
     if not spellList then return end
     for spellID, data in pairs(spellList) do
         local foundPageKey = nil
         local foundProfName = nil
+        local profEntry = profLookup and profLookup[spellID]
 
-        for _, profEntry in ipairs(profPages) do
-            local pageKey = profEntry.pageKey
-            local profName = profEntry.name
-            if AtlasCFMLoot_Data[pageKey] and AtlasCFM.LootUtils.IsItemInLootPage(AtlasCFMLoot_Data[pageKey], spellID) then
-                DataIndex.SpellID[spellID] = profName
-                foundPageKey = pageKey
-                foundProfName = profName
-                break
-            end
+        if profEntry then
+            foundPageKey = profEntry.pageKey
+            foundProfName = profEntry.name
+            DataIndex.SpellID[spellID] = foundProfName
         end
+
         local itemID = AtlasCFM.Server.GetDataField(data, "item")
         if itemID then
             if DataIndex.SourceCache[itemID] == nil then
@@ -261,6 +287,97 @@ local function indexProfItems(spellList, profPages, typeName)
     end
 end
 
+
+-- Gentle asynchronous version of profession indexing.
+-- Processes only a few spell records per timer tick so large SpellDB tables
+-- cannot monopolize a frame on the 1.12 client.
+local function indexProfItemsAsync(spellList, profLookup, typeName, done)
+    if not spellList then
+        if done then done() end
+        return
+    end
+
+    local cursor = nil
+    local BATCH_SIZE = 8
+
+    local function ProcessOneSpell(spellID, data)
+        local foundPageKey = nil
+        local foundProfName = nil
+        local profEntry = profLookup and profLookup[spellID]
+
+        if profEntry then
+            foundPageKey = profEntry.pageKey
+            foundProfName = profEntry.name
+            DataIndex.SpellID[spellID] = foundProfName
+        end
+
+        local itemID = AtlasCFM.Server.GetDataField(data, "item")
+        if itemID and DataIndex.SourceCache[itemID] == nil then
+            DataIndex.SourceCache[itemID] = DataIndex.SpellID[spellID]
+        end
+
+        if foundPageKey then
+            local spellKey = "s" .. spellID
+            if not DataIndex.LocationCache[spellKey] then DataIndex.LocationCache[spellKey] = {} end
+            local cache = DataIndex.LocationCache[spellKey]
+            local exists = false
+            for _, loc in ipairs(cache) do
+                if loc.page == foundPageKey and loc.type == typeName then
+                    exists = true
+                    break
+                end
+            end
+            if not exists then
+                table.insert(cache, {
+                    type = typeName,
+                    page = foundPageKey,
+                    boss = nil,
+                    inst = nil,
+                    displayName = foundProfName
+                })
+            end
+
+            if itemID then
+                if not DataIndex.LocationCache[itemID] then DataIndex.LocationCache[itemID] = {} end
+                local iCache = DataIndex.LocationCache[itemID]
+                local iExists = false
+                for _, loc in ipairs(iCache) do
+                    if loc.page == foundPageKey and loc.type == "item" then
+                        iExists = true
+                        break
+                    end
+                end
+                if not iExists then
+                    table.insert(iCache, {
+                        type = "item",
+                        page = foundPageKey,
+                        boss = nil,
+                        inst = nil,
+                        displayName = foundProfName
+                    })
+                end
+            end
+        end
+    end
+
+    local function RunBatch()
+        local count = 0
+        while count < BATCH_SIZE do
+            local spellID, data = next(spellList, cursor)
+            if spellID == nil then
+                if done then done() end
+                return
+            end
+            cursor = spellID
+            ProcessOneSpell(spellID, data)
+            count = count + 1
+        end
+        AtlasCFM.Timer.Start(0.05, RunBatch)
+    end
+
+    AtlasCFM.Timer.Start(0.05, RunBatch)
+end
+
 local function IndexList(list, source, locationInfo)
     if not list then return end
     for i = 1, table.getn(list) do
@@ -296,10 +413,12 @@ local function IndexList(list, source, locationInfo)
                 cacheKey = "s" .. id
             end
 
-            -- Name mapping for search (optional, used by Tooltip logic)
-            if GetItemInfo then
-                local name = GetItemInfo(id)
-                if name then DataIndex.NameToID[name] = id end
+            -- Name mapping must remain passive during startup indexing.
+            -- Use only names already present in the static data; never call
+            -- GetItemInfo here because uncached item lookups can initiate cache
+            -- work while the cooperative index is still running.
+            if actualType == "item" and type(el) == "table" and el.name then
+                DataIndex.NameToID[el.name] = id
             end
 
             -- Source mapping
@@ -464,27 +583,56 @@ function DataIndex.BuildIndex(incremental)
         end
     end)
 
-    -- Step 3: Professions (Source Indexing)
+    -- Step 3 has both synchronous and asynchronous implementations.
+    -- The synchronous path remains available as a safe fallback, while normal
+    -- startup uses RunProfessionStep below to spread the work across frames.
     table.insert(steps, function()
-        if AtlasCFM.SpellDB and AtlasCFM.MenuData then
-            local profPages = {}
-            local menuKeys = { "Alchemy", "Smithing", "Enchanting", "Engineering", "Leatherworking", "Mining",
-                "Tailoring",
-                "Jewelcrafting", "Cooking", "FirstAid", "Survival", "Crafting", "CraftedSet" }
-            for _, key in ipairs(menuKeys) do
-                local menu = AtlasCFM.MenuData[key]
-                if menu then
-                    for _, entry in ipairs(menu) do
-                        if entry.lootpage and entry.name then
-                            table.insert(profPages, { pageKey = entry.lootpage, name = entry.name })
-                        end
+        if not (AtlasCFM.SpellDB and AtlasCFM.MenuData) then return end
+        local profPages = {}
+        local menuKeys = { "Alchemy", "Smithing", "Enchanting", "Engineering", "Leatherworking", "Mining",
+            "Tailoring", "Jewelcrafting", "Cooking", "FirstAid", "Survival", "Crafting", "CraftedSet" }
+        for _, key in ipairs(menuKeys) do
+            local menu = AtlasCFM.MenuData[key]
+            if menu then
+                for _, entry in ipairs(menu) do
+                    if entry.lootpage and entry.name then
+                        table.insert(profPages, { pageKey = entry.lootpage, name = entry.name })
                     end
                 end
             end
-            indexProfItems(AtlasCFM.SpellDB.enchants, profPages, "enchant")
-            indexProfItems(AtlasCFM.SpellDB.craftspells, profPages, "spell")
         end
+        local profLookup = BuildProfessionLookup(profPages)
+        indexProfItems(AtlasCFM.SpellDB.enchants, profLookup, "enchant")
+        indexProfItems(AtlasCFM.SpellDB.craftspells, profLookup, "spell")
     end)
+
+    local function RunProfessionStep(done)
+        if not (AtlasCFM.SpellDB and AtlasCFM.MenuData) then
+            done()
+            return
+        end
+
+        local profPages = {}
+        local menuKeys = { "Alchemy", "Smithing", "Enchanting", "Engineering", "Leatherworking", "Mining",
+            "Tailoring", "Jewelcrafting", "Cooking", "FirstAid", "Survival", "Crafting", "CraftedSet" }
+        for _, key in ipairs(menuKeys) do
+            local menu = AtlasCFM.MenuData[key]
+            if menu then
+                for _, entry in ipairs(menu) do
+                    if entry.lootpage and entry.name then
+                        table.insert(profPages, { pageKey = entry.lootpage, name = entry.name })
+                    end
+                end
+            end
+        end
+
+        -- This one-pass lookup is much cheaper than the original repeated scans.
+        local profLookup = BuildProfessionLookup(profPages)
+
+        indexProfItemsAsync(AtlasCFM.SpellDB.enchants, profLookup, "enchant", function()
+            indexProfItemsAsync(AtlasCFM.SpellDB.craftspells, profLookup, "spell", done)
+        end)
+    end
 
     -- Step 4: Loot Tables (InstanceData)
     local pageBelongsToInstance = {}
@@ -613,7 +761,7 @@ function DataIndex.BuildIndex(incremental)
 
     if incremental then
         local currentKeyIndex = 1
-        local CHUNK_SIZE = 10 -- Slightly reduced chunk size as we do more work (skill indexing)
+        local CHUNK_SIZE = 1 -- Ultra-gentle startup: one loot page per timer slice
 
         local function IndexLootTablesChunk()
             local count = 0
@@ -626,7 +774,7 @@ function DataIndex.BuildIndex(incremental)
             end
 
             if currentKeyIndex <= n then
-                AtlasCFM.Timer.Start(0.02, IndexLootTablesChunk)
+                AtlasCFM.Timer.Start(0.10, IndexLootTablesChunk)
             else
                 FinalizeIndexing()
             end
@@ -636,15 +784,27 @@ function DataIndex.BuildIndex(incremental)
         local currentStep = 1
         local function RunNextStep()
             if currentStep > table.getn(steps) then
-                AtlasCFM.Timer.Start(0.02, IndexLootTablesChunk)
+                AtlasCFM.Timer.Start(0.10, IndexLootTablesChunk)
                 return
             end
+
+            if currentStep == 3 then
+                currentStep = currentStep + 1
+                RunProfessionStep(function()
+                    AtlasCFM.Timer.Start(0.10, RunNextStep)
+                end)
+                return
+            end
+
             steps[currentStep]()
             currentStep = currentStep + 1
-            AtlasCFM.Timer.Start(0.02, RunNextStep)
+            AtlasCFM.Timer.Start(0.15, RunNextStep)
         end
 
-        RunNextStep()
+        -- Do not execute the first indexing step in the same frame that starts
+        -- the build.  Giving the client one more frame avoids stacking this work
+        -- on top of other delayed login initialization.
+        AtlasCFM.Timer.Start(0.10, RunNextStep)
     else
         -- Synchronous execution
         for _, step in ipairs(steps) do
@@ -663,7 +823,9 @@ function DataIndex.GetItemSource(itemID)
 
     -- Auto-start indexing if not ready
     if not DataIndex.isIndexed and not DataIndex.isIndexing then
-        DataIndex.BuildIndex(false) -- Force sync build for search
+        -- Never force the whole database through one frame.  Start the same
+        -- cooperative index used at login and return whatever is available now.
+        DataIndex.CheckAndBuildIndex()
     end
 
     local cached = DataIndex.SourceCache[itemID]
@@ -692,8 +854,12 @@ function DataIndex.GetItemSource(itemID)
     -- Sets logic (if not indexed yet or missed)
     -- We can't easily do GetItemSetCategory without full scan, so we rely on BuildIndex.
 
-    -- Cache as missing
-    DataIndex.SourceCache[itemID] = false
+    -- Only cache a negative lookup after the full index is complete.
+    -- During cooperative startup the item may simply belong to a page that has
+    -- not been indexed yet; caching false at that point can hide a valid source.
+    if DataIndex.isIndexed then
+        DataIndex.SourceCache[itemID] = false
+    end
     return nil
 end
 
@@ -751,7 +917,7 @@ frame:SetScript("OnEvent", function()
     -- But only if options require it
     -- FIX: Delay indexing to allow server data to propagate (fixes missing skills on login)
     if AtlasCFM and AtlasCFM.Timer and AtlasCFM.Timer.Start then
-        AtlasCFM.Timer.Start(5, function()
+        AtlasCFM.Timer.Start(6, function()
             DataIndex.CheckAndBuildIndex()
         end)
     else

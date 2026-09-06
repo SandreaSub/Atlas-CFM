@@ -450,12 +450,6 @@ do
     versionText:SetTextColor(0.4, 0.4, 0.4)
     versionText:SetPoint("TOPRIGHT", -52, -17)
 
-    -- Update marker (shown when a newer version is available)
-    local updateMarker = atlasFrame:CreateFontString("AtlasCFMUpdateMarker", "ARTWORK", "GameFontNormalSmall")
-    updateMarker:SetText(Colors.RED2 .. L["Update available"])
-    updateMarker:SetPoint("RIGHT", titleText, "LEFT", -10, 0)
-    updateMarker:Hide()
-
     -- Notice text
     local noticeText = atlasFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     noticeText:SetText(Colors.RED .. L["NoticeText"])

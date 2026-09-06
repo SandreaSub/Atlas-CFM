@@ -142,4 +142,4 @@ function PrintA(msg)
     DEFAULT_CHAT_FRAME:AddMessage(prefix .. msg)
 end
 
-AtlasCFMCharDB = AtlasCFMCharDB or { FirstTime = true }
+AtlasCFMCharDB = AtlasCFMCharDB or {}

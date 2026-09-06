@@ -217,10 +217,9 @@ local function Atlas_Init()
 	-- Initialize UI frames
 	AtlasCFMLoot_InitializeUI()
 
-	--clear saved vars for a new ver (or a new install!)
-	if AtlasCFMOptions == nil or AtlasCFMCharDB.FirstTime then -- or AtlasCFMOptions["AtlasVersion"] ~= AtlasCFM.Version
-		AtlasCFM.OptionDefaultSettings()
-	end
+	-- Initialize/migrate saved variables non-destructively.
+	-- FirstTime is per-character and must never reset account-wide options.
+	AtlasCFM.EnsureSavedOptions()
 
 	--populate the dropdown lists
 

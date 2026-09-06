@@ -73,8 +73,14 @@ function AtlasCFMLoot_ShowWishList()
 	-- Invalidate cache after possible data normalization
 	AtlasCFMLoot_InvalidateCategorizedList("WishList")
 
-	-- Update display
-	AtlasCFM.LootBrowserUI.ScrollBarLootUpdate()
+	-- Request the real item IDs represented by the wish list before the
+	-- first paint. Spell/enchant rows are translated through SpellDB by the
+	-- centralized cache manager.
+	AtlasCFM.LootBrowserUI.ShowScrollBarLoading()
+	AtlasCFM.LootCache.CacheAllItems(AtlasCFMCharDB.WishList, function()
+		AtlasCFM.LootBrowserUI.HideScrollBarLoading()
+		AtlasCFM.LootBrowserUI.ScrollBarLootUpdate()
+	end)
 
 	-- Show sort dropdown if it exists
 	if AtlasCFMLootWishListSortDropDown then

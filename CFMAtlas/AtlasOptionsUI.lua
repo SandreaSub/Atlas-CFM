@@ -120,6 +120,12 @@ do
         end
     end)
 
+    optionsFrame:SetScript("OnHide", function()
+        if AtlasCFM.SyncOptionsBackup then
+            AtlasCFM.SyncOptionsBackup()
+        end
+    end)
+
     -- Title
     local title = optionsFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     title:SetPoint("TOP", optionsFrame, "TOP", 0, -15)

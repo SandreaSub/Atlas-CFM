@@ -305,9 +305,31 @@ local function AtlasCFMLoot_CreatePresetButtons(frame)
                 storedMenu = nil
             end
             if not dataID then return end
+            FauxScrollFrame_SetOffset(AtlasCFMLootScrollBar, 0)
+            AtlasCFMLootScrollBarScrollBar:SetValue(0)
             AtlasCFMLootItemsFrame.StoredElement = dataID
             AtlasCFMLootItemsFrame.StoredMenu = storedMenu
-            AtlasCFM.LootBrowserUI.ScrollBarLootUpdate()
+
+            local quickData = nil
+            if type(dataID) == "string" then
+                quickData = AtlasCFMLoot_Data and AtlasCFMLoot_Data[dataID]
+                if not quickData and storedMenu then
+                    quickData = AtlasCFM.DataResolver.GetLootByElemName(dataID, storedMenu)
+                end
+                if not quickData then
+                    quickData = AtlasCFM.DataResolver.GetLootByElemName(dataID)
+                end
+            end
+
+            if quickData then
+                AtlasCFM.LootBrowserUI.ShowScrollBarLoading()
+                AtlasCFM.LootCache.CacheAllItems(quickData, function()
+                    AtlasCFM.LootBrowserUI.HideScrollBarLoading()
+                    AtlasCFM.LootBrowserUI.ScrollBarLootUpdate()
+                end)
+            else
+                AtlasCFM.LootBrowserUI.ScrollBarLootUpdate()
+            end
             AtlasCFM.Quest.UI.InsideAtlasFrame:Hide()
         end)
 

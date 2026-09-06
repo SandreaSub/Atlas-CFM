@@ -157,16 +157,6 @@ function AtlasCFM.ToggleAtlas()
 	end
 end
 
----
---- Shows the update marker on the main frame based on version state
---- @return nil
----
-function AtlasCFM.UpdateMarkerRefresh()
-	local marker = _G["AtlasCFMUpdateMarker"]
-	if not marker then return end
-	AtlasCFMUpdateMarker:Show()
-end
-
 --Parses slash commands
 --If an unrecognized command is given, toggle Atlas
 ---
@@ -181,11 +171,8 @@ function AtlasCFM.SlashCommand(msg)
 	msg = string.lower(msg or '')
 	if msg == "options" or msg == "opt" then
 		AtlasCFM.OptionsOnClick()
-	elseif msg == 'ver check' then
-		AtlasCFM.VersionCheck.publishVersion()
-		PrintA(format(L["Version check sent to %s"], AtlasCFM.VersionCheck.channelName))
 	elseif msg == 'ver' then
-		PrintA(format(L["Version: %s"], AtlasCFM.VersionCheck.getLocalVersionString()))
+		PrintA(format(L["Version: %s"], AtlasCFM.Version or GetAddOnMetadata(AtlasCFM.Name, "Version")))
 	else
 		AtlasCFM.ToggleAtlas()
 	end

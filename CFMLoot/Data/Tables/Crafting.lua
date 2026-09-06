@@ -182,7 +182,7 @@ local craftingTable = {
 		{ id = 2337,  skill = { 55, 85, 105, 125 } },                                              --Lesser Healing Potion
 		{ id = 6617,  skill = { 60, 90, 110, 130 } },                                              --Rage Potion
 		{ id = 2335,  skill = { 60, 90, 110, 130 } },                                              --Swiftness Potion
-		{ id = 15003, skill = { 75, 110, 125, 140 }, servers = { AtlasCFM.Server.TURTLE } },       --Volatile Concoction 1.18
+		{ id = 45061, skill = { 75, 135, 155, 175 }, servers = { AtlasCFM.Server.TURTLE } },       --Volatile Concoction 1.18
 	},
 	AlchemyJourneyman = {
 		{ id = 7836, skill = { 80, 80, 90, 100 } },           --Blackmouth Oil
@@ -446,7 +446,7 @@ local craftingTable = {
 		{},
 		{},
 		{},
-		{ id = 15003, skill = { 75, 110, 125, 140 },  servers = { AtlasCFM.Server.TURTLE } },                           --Volatile Concoction 1.18
+		{ id = 45061, skill = { 75, 135, 155, 175 },  servers = { AtlasCFM.Server.TURTLE } },                           --Volatile Concoction 1.18
 		{ id = 115,   skill = { 200, 200, 212, 225 }, servers = { AtlasCFM.Server.TURTLE } },                           --Elixir of Rapid Growth 1.18
 		{ id = 11477, skill = { 250, 265, 285, 305 } },                                                                 --Elixir of Demonslaying
 		{ id = 57111, skill = { 300, 310, 315, 320 }, servers = { AtlasCFM.Server.TURTLE1 } },                          --Potion of Quickness
@@ -977,7 +977,7 @@ local craftingTable = {
 		{ id = 3334,  skill = { 145, 175, 190, 205 } },                                              --Green Iron Boots
 		{ id = 3297,  skill = { 145, 175, 190, 205 } },                                              --Mighty Iron Hammer
 		{ id = 2675,  skill = { 145, 175, 190, 205 } },                                              --Shining Silver Breastplate
-		{ id = 8768,  skill = { 150, 150, 152, 155 } },                                              --Iron Buckle
+		{ id = 8768,  skill = { 150, 150, 152, 155 } },                                              --Iron Belt Buckle
 		{ id = 19667, skill = { 150, 150, 160, 170 } },                                              --Golden Skeleton Key
 		{ id = 14379, skill = { 150, 155, 157, 160 } },                                              --Golden Rod
 		{ id = 7221,  skill = { 150, 180, 195, 210 } },                                              --Iron Shield Spike
@@ -1625,7 +1625,7 @@ local craftingTable = {
 		{ id = 27586,       skill = { 300, 320, 330, 340 } },                                  --Jagged Obsidian Shield
 		{ id = 7222,        skill = { 165, 190, 202, 215 } },                                  --Iron Counterweight
 		{ id = 7224,        skill = { 190, 215, 227, 240 } },                                  --Steel Weapon Chain
-		{ id = 8768,        skill = { 150, 150, 152, 155 } },                                  --Iron Buckle
+		{ id = 8768,        skill = { 150, 150, 152, 155 } },                                  --Iron Belt Buckle
 		{ id = 11454,       skill = { 200, 225, 237, 250 } },                                  --Inlaid Mithril Cylinder
 		{ id = 19666,       skill = { 100, 100, 110, 120 } },                                  --Silver Skeleton Key
 		{ id = 19667,       skill = { 150, 150, 160, 170 } },                                  --Golden Skeleton Key
@@ -2145,7 +2145,7 @@ local craftingTable = {
 		{ id = 19084, skill = { 290, 310, 320, 330 } },                                          --Devilsaur Gauntlets
 		{},
 		{ id = 19087, skill = { 295, 315, 325, 335 } },                                          --Frostsaber Gloves
-		{ id = 36909, skill = { 1, 300, 305, 310 },   servers = { AtlasCFM.Server.TURTLE1 } },   --Essence Infused Leather Gloves 1.18
+		{ id = 36909, skill = { 300, 300, 305, 310 }, servers = { AtlasCFM.Server.TURTLE1 } },   --Essence Infused Leather Gloves 1.18
 		{ id = 24122, skill = { 300, 320, 330, 340 } },                                          --Primal Batskin Gloves
 		{ id = 24850, skill = { 300, 320, 330, 340 } },                                          --Sandstalker Gauntlets
 		{ id = 24847, skill = { 300, 320, 330, 340 } },                                          --Spitfire Gauntlets
@@ -3540,28 +3540,28 @@ local craftingTable = {
 
 	SurvivalTable = {
 		{ name = L["Survival"],  icon = "Trade_Survival" },
-		{ id = 46064,            skill = { 1, 30, 45, 60 } }, --Dim Torch
-		{ id = 46072,            skill = { 50, 100, 125, 150 } }, --Traveler's Tent
-		{ id = 46074,            skill = { 75, 100, 112, 125 } }, --Simple Woodern Planter
-		{ id = 46073,            skill = { 75, 125, 150, 175 } }, --Fishing Boat
+		{ id = 46064,            skill = { 1, 30, 45, 60 }, servers = { AtlasCFM.Server.STRICT_TURTLE1 } }, --Dim Torch
+		{ id = 46072,            skill = { 50, 100, 125, 150 }, servers = { AtlasCFM.Server.STRICT_TURTLE1 } }, --Traveler's Tent
+		{ id = 46074,            skill = { 75, 100, 112, 125 }, servers = { AtlasCFM.Server.STRICT_TURTLE1 } }, --Simple Wooden Planter
+		{ id = 46073,            skill = { 75, 125, 150, 175 }, servers = { AtlasCFM.Server.STRICT_TURTLE1 } }, --Fishing Boat
 		{},
-		{ id = 46075,            skill = { 90, 90, 90, 90 } }, --Iron Lantern
-		{ id = 46068,            skill = { 100, 150, 175, 200 } }, --Cleaning Cloth
-		{ id = 46066,            skill = { 120, 150, 162, 175 } }, --Murloc's Flippers
-		{ id = 46077,            skill = { 120, 120, 135, 150 } }, --Repaired Electro-Lantern
+		{ id = 46075,            skill = { 90, 90, 90, 90 }, servers = { AtlasCFM.Server.STRICT_TURTLE1 } }, --Iron Lantern
+		{ id = 46068,            skill = { 100, 150, 175, 200 }, servers = { AtlasCFM.Server.STRICT_TURTLE1 } }, --Cleaning Cloth
+		{ id = 46066,            skill = { 120, 150, 162, 175 }, servers = { AtlasCFM.Server.STRICT_TURTLE1 } }, --Murloc's Flippers
+		{ id = 46077,            skill = { 120, 120, 135, 150 }, servers = { AtlasCFM.Server.STRICT_TURTLE1 } }, --Repaired Electro-Lantern
 		{},
 		{},
 		{},
 		{},
 		{},
 		{ name = L["Gardening"], icon = "Trade_Survival" },
-		{ id = 51706,            quantity = { 4, 10 },          container = { { 51710, { 3, 6 } }, { 51713, { 3, 6 } } } },                --Country Pumpkin Seeds, Plump Country Pumpkin
+		{ id = 51706,            quantity = { 4, 10 },          container = { { 51710, { 3, 6 } }, { 51713, { 3, 6 } } }, servers = { AtlasCFM.Server.STRICT_TURTLE1 } },                --Country Pumpkin Seeds, Plump Country Pumpkin
 		{},
-		{ id = 51707,            quantity = { 4, 10 },          container = { { 51711, { 3, 6 } }, { 51714, { 3, 6 } } } },                --Mountain Berry Bush Seeds, Sweet Mountain Berry
+		{ id = 51707,            quantity = { 4, 10 },          container = { { 51711, { 3, 6 } }, { 51714, { 3, 6 } } }, servers = { AtlasCFM.Server.STRICT_TURTLE1 } },                --Mountain Berry Bush Seeds, Sweet Mountain Berry
 		{},
-		{ id = 51708,            quantity = { 4, 10 },          container = { { 51712, { 3, 6 } }, { 51718, { 3, 6 } } } },                --Striped Melon Seeds, Juicy Watermelon, Sweet Watermelon
+		{ id = 51708,            quantity = { 4, 10 },          container = { { 51712, { 3, 6 } }, { 51718, { 3, 6 } } }, servers = { AtlasCFM.Server.STRICT_TURTLE1 } },                --Striped Melon Seeds, Juicy Watermelon, Sweet Watermelon
 		{},
-		{ id = 51716,            quantity = 20,                 disc = L["Vendor"],                                      container = { { 51717, { 2, 5 } }, { 51720, { 2, 5 } } } }, --Magic Mushroom Spores, Hardened Mushroom, Power Mushroom
+		{ id = 51716,            quantity = 20,                 disc = L["Vendor"],                                      container = { { 51717, { 2, 5 } }, { 51720, { 2, 5 } } }, servers = { AtlasCFM.Server.STRICT_TURTLE1 } }, --Magic Mushroom Spores, Hardened Mushroom, Power Mushroom
 	},
 
 	SurvivalApprentice = {
@@ -3581,6 +3581,7 @@ local craftingTable = {
 		{ id = 36785, skill = { 60, 80, 90, 100 } },       --Makeshift Knife
 		{ id = 36786, skill = { 65, 85, 95, 105 } },       --Gardening Gloves
 		{ id = 36787, skill = { 70, 90, 100, 110 } },      --Crude Fishing Rod
+		{ id = 46074, skill = { 75, 100, 112, 125 } },     --Simple Wooden Planter
 	},
 	SurvivalJourneyman = {
 		{ id = 46072, skill = { 80, 100, 110, 120 },  servers = { AtlasCFM.Server.TURTLE1 } },      --Traveler's Tent
@@ -3721,14 +3722,12 @@ local craftingTable = {
 		{ id = 41021, skill = { 60, 80, 87, 95 } },                                                   --Azure Ring
 		{ id = 41023, skill = { 65, 85, 92, 100 } },                                                  --Bright Copper Necklace
 		{ id = 41025, skill = { 65, 85, 92, 100 } },                                                  --Softglow Ring
-		{ id = 41247, skill = { 65, 85, 92, 100 } },                                                  --Small Pearl Ring
 		{ id = 41027, skill = { 70, 90, 95, 100 } },                                                  --Topaz Studded Ring
 		{ id = 41029, skill = { 70, 90, 95, 100 } },                                                  --Coarse Gritted Paper
 		{ id = 41560, skill = { 75, 95, 105, 115 } },                                                 --Ebon Ring
 	},
 
 	JewelcraftingJourneyman = {
-		{ id = 41335, skill = { 80, 100, 110, 120 },  servers = { AtlasCFM.Server.TURTLE } },           --Shining Copper Cuffs 1.18
 		{ id = 41033, skill = { 80, 100, 110, 120 } },                                                  --Lavish Gemmed Necklace
 		{ id = 41321, skill = { 80, 100, 110, 120 } },                                                  --Gleaming Chain
 		{ id = 41035, skill = { 80, 105, 115, 125 } },                                                  --Amberstone Pendant
@@ -3968,8 +3967,8 @@ local craftingTable = {
 		{ id = 41611, skill = { 260, 265, 267, 270 } },                                          --Gloomy Diamond Gemstone
 		{ id = 41762, skill = { 270, 270, 272, 275 } },                                          --Dreary Opal Gemstone
 		{ id = 41625, skill = { 270, 275, 277, 280 } },                                          --Beautiful Diamond Gemstone
-		{ id = 41641, skill = { 1, 275, 277, 280 } },                                            --Unstable Arcane Gemstone
-		{ id = 41643, skill = { 1, 290, 292, 295 } },                                            --Glittering Sapphire Gemstone
+		{ id = 41641, skill = { 275, 275, 277, 280 } },                                          --Unstable Arcane Gemstone
+		{ id = 41643, skill = { 290, 290, 292, 295 } },                                          --Glittering Sapphire Gemstone
 		{ id = 41764, skill = { 300, 320, 330, 340 } },                                          --Resurged Topaz Gemstone
 		{ id = 41768, skill = { 300, 320, 330, 340 } },                                          --Resilient Arcane Gemstone
 		{ id = 41621, skill = { 250, 255, 257, 260 } },                                          --Enchanted Emerald Gemstone
@@ -3994,7 +3993,6 @@ local craftingTable = {
 		{ id = 41019, skill = { 60, 80, 87, 95 } },      --Amber Ring
 		{ id = 41021, skill = { 60, 80, 87, 95 } },      --Azure Ring
 		{ id = 41025, skill = { 65, 85, 92, 100 } },     --Softglow Ring
-		{ id = 41247, skill = { 65, 85, 92, 100 } },     --Small Pearl Ring
 		{ id = 41027, skill = { 70, 90, 95, 100 } },     --Topaz Studded Ring
 		{ id = 41560, skill = { 75, 95, 105, 115 } },    --Ebon Ring
 		{ id = 41562, skill = { 85, 105, 115, 125 } },   --The King's Conviction
@@ -4030,8 +4028,8 @@ local craftingTable = {
 		{ id = 41708, skill = { 290, 320, 330, 340 } },  --Opalstone Circle
 		{},
 		{ id = 41253, skill = { 300, 320, 330, 340 } },  --Emerald Monarch's Glow
-		{ id = 41303, skill = { 1, 315, 322, 330 } },    --Massive Jewel Circlet
-		{ id = 41317, skill = { 1, 320, 330, 340 } },    --Twilight Opal Cascade
+		{ id = 41303, skill = { 300, 315, 322, 330 } },  --Massive Jewel Circlet
+		{ id = 41317, skill = { 300, 320, 330, 340 } },  --Twilight Opal Cascade
 		{ id = 41782, skill = { 285, 310, 320, 330 } },  --Golden Runed Ring
 		{ id = 41780, skill = { 290, 310, 320, 330 } },  --Stormcloud Signet
 		{ id = 41710, skill = { 290, 320, 330, 340 } },  --Deep Sapphire Circlet
@@ -4072,7 +4070,7 @@ local craftingTable = {
 		{ id = 41089, skill = { 245, 265, 275, 285 } },                                          --Mithril Blackstone Necklace
 		{ id = 41273, skill = { 265, 265, 285, 305 } },                                          --Prism Amulet
 		{ id = 41774, skill = { 265, 275, 285, 295 } },                                          --Spellweaver Pendant
-		{ id = 41315, skill = { 1, 275, 285, 295 } },                                            --Moonlit Charm
+		{ id = 41315, skill = { 275, 275, 285, 295 } },                                          --Moonlit Charm
 		{ id = 41279, skill = { 280, 280, 300, 320 } },                                          --Voidheart Charm
 		{ id = 41105, skill = { 280, 300, 305, 310 } },                                          --Pendant of Arcane Radiance
 		{ id = 41287, skill = { 290, 310, 325, 340 } },                                          --Stormcloud Sigil
@@ -4101,7 +4099,6 @@ local craftingTable = {
 	JewelcraftingBracers = {
 		{ id = 29732, skill = { 1, 21, 33, 45 } },         --Copper Bangle
 		{ id = 41011, skill = { 50, 70, 75, 80 } },        --Encrusted Copper Bangle
-		{ id = 41335, skill = { 80, 100, 110, 120 } },     --Shining Copper Cuffs 1.18
 		{ id = 41587, skill = { 80, 160, 170, 180 } },     --Gloomweed Bindings
 		{ id = 41049, skill = { 105, 120, 132, 145 } },    --Bronze Cuffed Bangles
 		{ id = 41726, skill = { 105, 125, 135, 145 } },    --Hydrathorn Bracers
@@ -4114,10 +4111,10 @@ local craftingTable = {
 		{ id = 41718, skill = { 200, 225, 237, 250 } },    --Ornate Mithril Bracelets
 		{ id = 41714, skill = { 250, 280, 290, 300 } },    --Opal Guided Bangles
 		{ id = 41348, skill = { 255, 275, 285, 295 } },    --Crystalfire Armlets
-		{ id = 41311, skill = { 1, 270, 280, 290 } },      --Stellar Gemguards
+		{ id = 41311, skill = { 270, 270, 280, 290 } },    --Stellar Gemguards
 		{ id = 41101, skill = { 280, 285, 297, 310 } },    --Crystalweft Bracers
 		{ id = 41804, skill = { 300, 320, 330, 340 } },    --Bindings of Luminance
-		{ id = 41778, skill = { 1, 310, 320, 330 } },      --Stormcloud Shackles
+		{ id = 41778, skill = { 300, 310, 320, 330 } },    --Stormcloud Shackles
 		{ id = 41700, skill = { 300, 320, 330, 340 } },    --Embergem Cuffs
 		{ id = 41808, skill = { 300, 325, 332, 340 } },    --Mastercrafted Diamond Bangles
 	},
@@ -4188,7 +4185,7 @@ local craftingTable = {
 		{ id = 41219, skill = { 175, 175, 177, 180 } },                                                     --Rough Mithril Ring
 		{ id = 41233, skill = { 200, 200, 205, 210 } },                                                     --Rough Truesilver Ring
 		{ id = 41087, skill = { 235, 245, 250, 255 } },                                                     --Rough Thorium Ring
-		{ id = 41271, skill = { 1, 295, 305, 315 } },                                                       --Pure Gold Ring
+		{ id = 41271, skill = { 295, 295, 305, 315 } },                                                     --Pure Gold Ring
 		{ id = 29728, skill = { 1, 21, 25, 30 } },                                                          --Rough Gritted Paper
 		{ id = 41029, skill = { 70, 90, 95, 100 } },                                                        --Coarse Gritted Paper
 		{ id = 41201, skill = { 150, 150, 155, 160 } },                                                     --Heavy Gritted Paper

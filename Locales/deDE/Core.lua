@@ -368,10 +368,7 @@ AtlasCFM.Localization:RegisterNamespace("UI", "deDE", {
     --************************************************
     -- Version & Updates
     --************************************************
-    ["Update available"] = "Aktualisierung verfügbar",
     ["Version: %s"] = "Version: %s",
-    ["Version check sent to %s"] = "Versionsprüfung an %s gesendet",
-    ["NewVersionAvailableFmt"] = "|cffff0000Neue Version verfügbar!|r |cff00ff00Hier herunterladen:|r %s",
     [" |cffA52A2Aloaded."] = " |cffA52A2Ageladen.",
     ["NoticeText"] = "Wenn Sie etwas vermissen, melden Sie es bitte unter:|r",
 
