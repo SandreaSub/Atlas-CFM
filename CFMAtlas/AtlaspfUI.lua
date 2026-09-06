@@ -451,9 +451,6 @@ local function StyleSearchBox()
     AtlasCFM.pfUI.SkinEditBox(AtlasCFMSearchEditBox)
     AtlasCFMSearchEditBox:SetHeight(20) -- Fix height for pfUI style
 
-    if pfUI.api.SkinButton and AtlasCFMNoticeBox then
-        AtlasCFM.pfUI.SkinEditBox(AtlasCFMNoticeBox)
-    end
     -- Also style the search button in the loot panel (handled in StyleLootPanel, but just in case)
     if pfUI.api.SkinButton and AtlasCFMLootSearchBox then
         AtlasCFM.pfUI.SkinEditBox(AtlasCFMLootSearchBox)

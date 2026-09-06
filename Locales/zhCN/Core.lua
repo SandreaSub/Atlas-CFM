@@ -328,7 +328,6 @@ AtlasCFM.Localization:RegisterNamespace("UI", "zhCN", {
     -- Version & Updates
     ["Version: %s"] = "版本:%s",
     [" |cffA52A2Aloaded."] = " |cffA52A2A已加载。",
-    ["NoticeText"] = "如果您发现任何缺失，请在此报告:|r",
 
     -- Categories & Menus
     ["Collections"] = "收藏",

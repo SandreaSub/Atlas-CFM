@@ -369,7 +369,6 @@ AtlasCFM.Localization:RegisterNamespace("UI", "ptBR", {
     --************************************************
     ["Version: %s"] = "Versão: %s",
     [" |cffA52A2Aloaded."] = " |cffA52A2Acarregado.",
-    ["NoticeText"] = "Encontrou algo faltando? Relate em:|r",
 
     --************************************************
     -- Categories & Menus

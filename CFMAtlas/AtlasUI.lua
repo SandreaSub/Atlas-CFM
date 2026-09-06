@@ -443,31 +443,12 @@ do
 
     local titleText = atlasFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     titleText:SetText(Colors.YELLOW .. AtlasCFM.Name)
-    titleText:SetPoint("TOPLEFT", 200, -17)
+    titleText:SetPoint("TOP", atlasFrame, "TOP", 0, -17)
 
     local versionText = atlasFrame:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
     versionText:SetText(AtlasCFM.Version)
     versionText:SetTextColor(0.4, 0.4, 0.4)
     versionText:SetPoint("TOPRIGHT", -52, -17)
-
-    -- Notice text
-    local noticeText = atlasFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-    noticeText:SetText(Colors.RED .. L["NoticeText"])
-    noticeText:SetPoint("TOP", -20, -17)
-
-    -- Notice link
-    local noticeBox = CreateFrame("EditBox", "AtlasCFMNoticeBox", atlasFrame, "InputBoxTemplate")
-    noticeBox:SetWidth(230)
-    noticeBox:SetHeight(16)
-    noticeBox:SetPoint("TOP", 240, -15)
-    noticeBox:SetMaxLetters(48)
-    noticeBox:SetAutoFocus(false)
-    noticeBox:SetText(Colors.RED .. L["NoticeLink"])
-    noticeBox:SetScript("OnTextChanged", function()
-        if noticeBox:GetText() ~= Colors.RED .. L["NoticeLink"] then
-            noticeBox:SetText(Colors.RED .. L["NoticeLink"])
-        end
-    end)
 
     -- Map texture
     atlasFrame:CreateTexture("AtlasCFMMap", "BACKGROUND")

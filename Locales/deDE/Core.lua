@@ -370,7 +370,6 @@ AtlasCFM.Localization:RegisterNamespace("UI", "deDE", {
     --************************************************
     ["Version: %s"] = "Version: %s",
     [" |cffA52A2Aloaded."] = " |cffA52A2Ageladen.",
-    ["NoticeText"] = "Wenn Sie etwas vermissen, melden Sie es bitte unter:|r",
 
     --************************************************
     -- Categories & Menus

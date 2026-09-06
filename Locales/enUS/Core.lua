@@ -361,8 +361,6 @@ AtlasCFM.Localization:RegisterNamespace("UI", "enUS", {
     --************************************************
     ["Version: %s"] = true,
     [" |cffA52A2Aloaded."] = true,
-    ["NoticeText"] = "If you find anything missing, please report it at:|r",
-    ["NoticeLink"] = "https://github.com/byCFM2/Atlas-CFM/issues/|r",
 
     --************************************************
     -- Categories & Menus
