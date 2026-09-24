@@ -1298,7 +1298,13 @@ end
 ---
 function AtlasCFMLoot_InitializeUI()
     AtlasCFMLoot_CreateTooltips()
+
+    -- AtlaspfUI may initialize before these custom tooltips exist. Ask its
+    -- idempotent comparison hook to attach now that the frames are real.
+    if AtlasCFM.pfUI and AtlasCFM.pfUI.SetupTooltipComparison then
+        AtlasCFM.pfUI.SetupTooltipComparison()
+    end
+
     AtlasCFMLoot_CreateItemsFrame()
     AtlasCFMLoot_CreatePanel()
-    --setupPfUITooltip()
 end
