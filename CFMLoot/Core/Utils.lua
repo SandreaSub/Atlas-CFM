@@ -96,6 +96,20 @@ function AtlasCFM.Timer.Start(delaySeconds, callbackFunc)
     delaySeconds = tonumber(delaySeconds) or 0
     if delaySeconds < 0 then delaySeconds = 0 end
 
+    -- ClassicAPI backports the native C_Timer scheduler to Vanilla 1.12.
+    -- Prefer it whenever available: there is then no Atlas OnUpdate frame at
+    -- all, and delayed cache/index callbacks are no longer executed inside an
+    -- AtlasCFMTimerFrame profiler scope. Keep the custom scheduler below only
+    -- for stock 1.12 clients that do not provide C_Timer.After.
+    if C_Timer and type(C_Timer.After) == "function" then
+        C_Timer.After(delaySeconds, function()
+            if callbackFunc then
+                pcall(callbackFunc)
+            end
+        end)
+        return
+    end
+
     if not timerFrame then
         timerFrame = CreateFrame("Frame", "AtlasCFMTimerFrame")
         timerFrame:SetScript("OnUpdate", OnTimerUpdate)
