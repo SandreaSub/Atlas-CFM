@@ -903,19 +903,37 @@ end
 --- @usage AtlasCFM.Interactions.MenuItem_OnClick("button1") -- Called by menu item clicks
 ---
 function AtlasCFM.Interactions.MenuItem_OnClick(button)
-	if this.container then
+	-- Menu rows are recycled when the FauxScroll offset changes. Snapshot every
+	-- field from the clicked row before resetting the scrollbar; otherwise the
+	-- reset can synchronously repaint this same button with another menu entry
+	-- and the click opens that replacement entry instead.
+	local clickedButton = button or this
+	if not clickedButton then return end
+
+	local clickedContainer = clickedButton.container
+	local clickedName = clickedButton.name_orig or clickedButton.name
+	local clickedLootPage = clickedButton.lootpage
+	local clickedFirstBoss = clickedButton.firstBoss
+	local clickedIsHeader = clickedButton.isheader
+	local clickedNameFrame = _G[clickedButton:GetName() .. "_Name"]
+	local clickedPageName = clickedNameFrame and clickedNameFrame:GetText() or clickedButton.name
+
+	if clickedContainer then
 		AtlasCFMLoot_ShowContainerFrame()
 		return
 	end
-	-- Reset both FauxScroll state and the underlying scrollbar.
+
+	-- Reset both FauxScroll state and the underlying scrollbar only after the
+	-- clicked row has been captured.
 	FauxScrollFrame_SetOffset(AtlasCFMLootScrollBar, 0)
 	AtlasCFMLootScrollBarScrollBar:SetValue(0)
-	-- Get the table source and data ID
-	local dataID = this.name_orig or this.name
-	local TableSource = this.lootpage
+
+	-- Get the table source and data ID from the pre-reset snapshot.
+	local dataID = clickedName
+	local TableSource = clickedLootPage
 	local pagename
-	if this.isheader == nil or this.isheader == false then
-		pagename = _G[this:GetName() .. "_Name"]:GetText()
+	if clickedIsHeader == nil or clickedIsHeader == false then
+		pagename = clickedPageName
 		-- Reliable instance determination by click name: first try dungeon menu, then button fields
 		local effectiveInstanceKey, effectiveFirstBoss
 		if type(dataID) == "string" and AtlasCFM and AtlasCFM.MenuData and AtlasCFM.MenuData.Dungeons then
@@ -928,8 +946,8 @@ function AtlasCFM.Interactions.MenuItem_OnClick(button)
 			end
 		end
 		if not effectiveInstanceKey then
-			effectiveInstanceKey = this.lootpage
-			effectiveFirstBoss = this.firstBoss
+			effectiveInstanceKey = clickedLootPage
+			effectiveFirstBoss = clickedFirstBoss
 		end
 		-- If this is a dungeon item with instance data, redirect page to first boss
 		if effectiveInstanceKey and effectiveFirstBoss then
