@@ -69,9 +69,18 @@ local function QueueVisibleRefresh()
     refreshScheduled = true
     AtlasCFM.Timer.Start(0.05, function()
         refreshScheduled = false
+
+        -- Repaint whichever Atlas surface is actually showing the item. Loot
+        -- pages already refreshed here; quest rewards previously did not, so a
+        -- cache-cold reward could remain a red question mark after its data had
+        -- successfully arrived.
         if AtlasCFMLootItemsFrame and AtlasCFMLootItemsFrame:IsVisible()
             and AtlasCFM.LootBrowserUI and AtlasCFM.LootBrowserUI.ScrollBarLootUpdate then
             AtlasCFM.LootBrowserUI.ScrollBarLootUpdate()
+        end
+
+        if AtlasCFM.Quest and AtlasCFM.Quest.RefreshQuestItems then
+            AtlasCFM.Quest.RefreshQuestItems()
         end
     end)
 end
@@ -370,6 +379,14 @@ function LootCache.CacheAllItems(dataSource, callback)
             callback()
         end
     end
+end
+
+--- Returns whether an item currently has a live cache request.
+--- This is intentionally not a negative cache: timed-out requests disappear
+--- and a later page open may request the item again.
+function LootCache.IsPending(itemID)
+    itemID = tonumber(itemID)
+    return itemID and pending[itemID] ~= nil or false
 end
 
 --- Small diagnostics helpers used only for safe/manual debugging.

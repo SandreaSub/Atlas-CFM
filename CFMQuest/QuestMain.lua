@@ -285,9 +285,12 @@ local function kQuestGetItemInf(count)
         -- Return requested information type
         return itemtext, itemTexture, itemDescription, itemQuantity
     else
-        -- Item not in cache, use fallback text from database
-        if itemId then
-            -- Add error message only if we have an ID but can't load the item
+        -- A cache miss while an asynchronous request is still live is a loading
+        -- state, not an unsafe item. Keep the old warning only when no request
+        -- is pending (for example an invalid/stale item ID or a timed-out load).
+        local isPending = itemId and AtlasCFM.LootCache and AtlasCFM.LootCache.IsPending
+            and AtlasCFM.LootCache.IsPending(itemId)
+        if itemId and not isPending then
             itemDescription = itemDescription .. " " .. red .. L["This item is not safe!"]
         end
         return itemName, "Interface\\Icons\\INV_Misc_QuestionMark", itemDescription, itemQuantity
@@ -305,6 +308,7 @@ local function setQuestItemsFrame()
     if not instanceData then return end
     local faction = AtlasCFM.Faction
     local questData = instanceData[faction] and instanceData[faction][AtlasCFM.QCurrentQuest]
+    if not questData or not questData.Rewards then return end
     -- Local AtlasCFM for item information
     local itemName, itemTexture, itemDiscription, itemQuantity
     -- Process each potential quest reward item (up to 6)
@@ -325,6 +329,17 @@ local function setQuestItemsFrame()
         end
     end
 end
+
+--- Repaint only the currently open quest's reward items after asynchronous
+--- item data arrives. This deliberately avoids SetQuestText(), which would
+--- queue the same cache work again and could create a refresh loop.
+function AtlasCFM.Quest.RefreshQuestItems()
+    if not AtlasCFM.Quest.UI or not AtlasCFM.Quest.UI.InsideAtlasFrame then return end
+    if not AtlasCFM.Quest.UI.InsideAtlasFrame:IsVisible() then return end
+    if not AtlasCFM.QCurrentQuest or AtlasCFM.QCurrentButton ~= AtlasCFM.QCurrentQuest then return end
+    setQuestItemsFrame()
+end
+
 -----------------------------------------------------------------------------
 -- set the Quest text
 -- executed when you push a button

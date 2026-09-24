@@ -18,39 +18,69 @@ local WHITE = AtlasCFM.Colors.WHITE
 AtlasCFM.Timer = {}
 local activeTimers = {}
 local timerFrame = nil
+local nextWakeTime = nil
+local expiredCallbacks = {}
+local expiredCount = 0
 
+-- The old timer rebuilt two temporary tables on every rendered frame while
+-- any timer was alive. Long startup delays and the cooperative cache/index
+-- timers therefore produced a large amount of avoidable garbage and GC work.
+-- Keep the timer arrays stable and do only a cheap time comparison until the
+-- next timer is actually due.
 local function OnTimerUpdate()
     local now = GetTime()
+
+    if nextWakeTime and now < nextWakeTime then
+        return
+    end
+
     local count = table.getn(activeTimers)
     if count == 0 then
+        nextWakeTime = nil
         timerFrame:Hide()
         return
     end
 
-    local keptTimers = {}
-    local expiredCallbacks = {}
+    local writeIndex = 1
+    local soonest = nil
+    expiredCount = 0
 
-    -- Single pass to separate expired and active timers (O(N))
-    for i = 1, count do
-        local timer = activeTimers[i]
-        if now >= timer.time then
+    -- Compact the active array in place. Keep callbacks in one reusable table
+    -- so the OnUpdate path does not allocate tables every frame.
+    for readIndex = 1, count do
+        local timer = activeTimers[readIndex]
+        if timer and now >= timer.time then
             if timer.callback then
-                table.insert(expiredCallbacks, timer.callback)
+                expiredCount = expiredCount + 1
+                expiredCallbacks[expiredCount] = timer.callback
             end
-        else
-            table.insert(keptTimers, timer)
+        elseif timer then
+            activeTimers[writeIndex] = timer
+            writeIndex = writeIndex + 1
+            if not soonest or timer.time < soonest then
+                soonest = timer.time
+            end
         end
     end
 
-    -- Update active timers with remaining ones
-    activeTimers = keptTimers
-
-    -- Execute callbacks after updating state to prevent re-entrancy issues
-    for i = 1, table.getn(expiredCallbacks) do
-        pcall(expiredCallbacks[i])
+    for i = writeIndex, count do
+        activeTimers[i] = nil
     end
+    nextWakeTime = soonest
+
+    -- Execute callbacks only after the active list is stable. Callbacks may
+    -- safely start new timers; Timer.Start updates nextWakeTime accordingly.
+    for i = 1, expiredCount do
+        local callback = expiredCallbacks[i]
+        expiredCallbacks[i] = nil
+        if callback then
+            pcall(callback)
+        end
+    end
+    expiredCount = 0
 
     if table.getn(activeTimers) == 0 then
+        nextWakeTime = nil
         timerFrame:Hide()
     end
 end
@@ -63,15 +93,23 @@ end
 -- @usage AtlasCFM.Timer.Start(2.0, function() PrintA("Timer finished") end)
 ---
 function AtlasCFM.Timer.Start(delaySeconds, callbackFunc)
+    delaySeconds = tonumber(delaySeconds) or 0
+    if delaySeconds < 0 then delaySeconds = 0 end
+
     if not timerFrame then
         timerFrame = CreateFrame("Frame", "AtlasCFMTimerFrame")
         timerFrame:SetScript("OnUpdate", OnTimerUpdate)
     end
 
+    local wakeTime = GetTime() + delaySeconds
     table.insert(activeTimers, {
-        time = GetTime() + delaySeconds,
+        time = wakeTime,
         callback = callbackFunc
     })
+
+    if not nextWakeTime or wakeTime < nextWakeTime then
+        nextWakeTime = wakeTime
+    end
     timerFrame:Show()
 end
 
