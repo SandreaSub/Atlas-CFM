@@ -230,7 +230,7 @@ function AtlasCFM.Quest.OnQuestClick(questIndex, button)
             AtlasCFM.Quest.DataBase[AtlasCFM.QCurrentInstance][AtlasCFM.Faction][questIndex]
 
         if questData and questData.Title then
-            AtlasCFM.Integrations.ShowQuestInPfQuest(questData.Title)
+            AtlasCFM.Integrations.ShowQuestInPfQuest(questData.Title, questData.Id)
         end
         return
     end

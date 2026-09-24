@@ -1,12 +1,12 @@
 ---
 --- Integrations.lua - Third-party addon integration management
 ---
---- This module handles integration with external addons such as EquipCompare,
---- EQCompare. It provides centralized management of
+--- This module handles integration with external addons such as pfUI, EquipCompare,
+--- EQCompare, ShaguTweaks, and pfQuest. It provides centralized management of
 --- addon compatibility, tooltip registration, and option handling.
 ---
 --- Features:
---- • EquipCompare/EQCompare tooltip registration
+--- • pfUI/EquipCompare/EQCompare tooltip integration
 --- • Addon availability detection
 --- • Option state management
 --- • Fallback handling for missing addons
@@ -23,12 +23,31 @@ local GREY = (AtlasCFM.Colors and AtlasCFM.Colors.GREY2) or "|cff808080"
 local L = (AtlasCFM.Localization and AtlasCFM.Localization.UI) or {}
 
 ---
---- Checks if EquipCompare or EQCompare addon is available
---- @return boolean True if either addon is loaded
+--- Checks if pfUI's built-in equipment comparison module is available
+--- @return boolean True when pfUI eqcompare is initialized
+---
+function AtlasCFM.Integrations.HasPfUIEquipCompare()
+    if not IsAddOnLoaded("pfUI") or not pfUI then return false end
+
+    -- During addon startup pfUI may be loaded before its modules have finished
+    -- initializing. Treat the provider as available unless eqcompare is
+    -- explicitly disabled, then let the idempotent tooltip hook attach once
+    -- pfUI.eqcompare.GameTooltipShow exists.
+    if pfUI_config and pfUI_config.disabled and pfUI_config.disabled["eqcompare"] == "1" then
+        return false
+    end
+
+    return true
+end
+
+---
+--- Checks if any supported equipment comparison provider is available
+--- @return boolean True if a supported comparison provider is loaded
 --- @usage local hasEquipCompare = AtlasCFM.Integrations.HasEquipCompare()
 ---
 function AtlasCFM.Integrations.HasEquipCompare()
-    return IsAddOnLoaded("EquipCompare") or IsAddOnLoaded("EQCompare") or AtlasCFM.Integrations.HasShaguTweaks()
+    return AtlasCFM.Integrations.HasPfUIEquipCompare() or IsAddOnLoaded("EquipCompare") or
+        IsAddOnLoaded("EQCompare") or AtlasCFM.Integrations.HasShaguTweaks()
 end
 
 ---
@@ -142,24 +161,46 @@ end
 
 ---
 --- Shows a specific quest in pfQuest map
+--- Prefers the exact Atlas quest ID and fails safely if a pfQuest fork errors.
 --- @param questName string The name of the quest to show
+--- @param questID number|nil Exact quest ID when available
 --- @return nil
---- @usage AtlasCFM.Integrations.ShowQuestInPfQuest("Quest Name")
+--- @usage AtlasCFM.Integrations.ShowQuestInPfQuest("Quest Name", 1234)
 ---
-function AtlasCFM.Integrations.ShowQuestInPfQuest(questName)
-    if not AtlasCFM.Integrations.HasPfQuest() then return end
+function AtlasCFM.Integrations.ShowQuestInPfQuest(questName, questID)
+    if not AtlasCFM.Integrations.HasPfQuest() or not pfDatabase or not pfMap then return end
 
-    -- Clean up quest name (remove level prefix if present)
-    -- Example: "14) Quest Name" -> "Quest Name"
-    local cleanName = string.gsub(questName, "^%d+%) ", "")
+    local cleanName = questName and string.gsub(questName, "^%d+%) ", "") or nil
+    local maps
+    local ok = false
+    questID = tonumber(questID)
 
-    -- Search specifically for quest
-    local maps = pfDatabase:SearchQuest(cleanName)
-    if maps and next(maps) then
-        pfMap:ShowMapID(pfDatabase:GetBestMap(maps))
-        --PrintA(AtlasCFM.Colors.GREEN .. "Found quest location in pfQuest: " .. AtlasCFM.Colors.WHITE .. cleanName)
-    else
-        -- PrintA(AtlasCFM.Colors.RED .. "Quest not found in pfQuest: " .. AtlasCFM.Colors.WHITE .. cleanName)
+    -- Atlas already knows the quest ID, so avoid a title -> ID round trip.
+    -- Passing an explicit metadata table also keeps patched pfQuest forks from
+    -- receiving a nil metadata object on this external call path.
+    if questID and type(pfDatabase.SearchQuestID) == "function" then
+        ok, maps = pcall(pfDatabase.SearchQuestID, pfDatabase, questID, {}, {})
+    elseif cleanName and type(pfDatabase.SearchQuest) == "function" then
+        -- Compatibility fallback for older pfQuest builds without SearchQuestID.
+        ok, maps = pcall(pfDatabase.SearchQuest, pfDatabase, cleanName, {})
+    end
+
+    if ok and type(maps) == "table" and next(maps) and
+        type(pfDatabase.GetBestMap) == "function" and type(pfMap.ShowMapID) == "function" then
+        local bestMapOK, bestMap = pcall(pfDatabase.GetBestMap, pfDatabase, maps)
+        if bestMapOK and bestMap then
+            local showOK = pcall(pfMap.ShowMapID, pfMap, bestMap)
+            if showOK then return end
+        end
+    end
+
+    -- A broken or incomplete pfQuest database should never throw an Atlas UI
+    -- error. Fall back to its browser so the player still gets a useful result.
+    if pfBrowser and cleanName then
+        pfBrowser:Show()
+        if pfBrowser.input then
+            pfBrowser.input:SetText(cleanName)
+        end
     end
 end
 
@@ -421,22 +462,21 @@ end
 ---
 function AtlasCFM.Integrations.ApplyEquipCompareIntegration()
     if AtlasCFMOptions.LootEquipCompare == true then
-        -- Integration with ShaguTweaks
-        if AtlasCFM.Integrations.HasShaguTweaks() then
-            AtlasCFM.Integrations.ApplyShaguTweaksIntegration()
-        end
-
-        -- Integration with EquipCompare/EQCompare
-        if IsAddOnLoaded("EquipCompare") then
+        -- Use one comparison provider only. pfUI gets priority when its native
+        -- eqcompare module is available so players do not get overlapping
+        -- comparison tooltips from pfUI plus a standalone addon. The pfUI hook
+        -- itself is installed by AtlasCFM.pfUI once the custom tooltips exist.
+        if AtlasCFM.Integrations.HasPfUIEquipCompare() then
+            if shaguHookFrame then shaguHookFrame:Hide() end
+        elseif IsAddOnLoaded("EquipCompare") then
             AtlasCFM.Integrations.RegisterEquipCompareTooltips(AtlasCFMLootTooltip, AtlasCFMLootTooltip2)
-        end
-
-        -- Handle EQCompare separately for compatibility
-        if IsAddOnLoaded("EQCompare") then
+        elseif IsAddOnLoaded("EQCompare") then
             if EQCompare and EQCompare.RegisterTooltip then
                 EQCompare:RegisterTooltip(AtlasCFMLootTooltip)
                 EQCompare:RegisterTooltip(AtlasCFMLootTooltip2)
             end
+        elseif AtlasCFM.Integrations.HasShaguTweaks() then
+            AtlasCFM.Integrations.ApplyShaguTweaksIntegration()
         end
     else
         -- Unregister everything if disabled

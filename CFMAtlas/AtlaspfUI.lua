@@ -991,29 +991,43 @@ end
 --- Works regardless of pfUI styling setting if pfUI is loaded
 ---
 local function SetupTooltipComparison()
-    if not IsPfUIBaseLoaded() then return end
-
-    if AtlasCFMLootTooltip then
-        -- Add comparison support
-        if pfUI.eqcompare and pfUI.eqcompare.GameTooltipShow then
-            -- Check if comparison is enabled in pfUI settings
-            -- In pfUI, if the module is active, eqcompare.GameTooltipShow exists.
-            -- We hook it directly.
-            local origOnShow = AtlasCFMLootTooltip:GetScript("OnShow")
-            AtlasCFMLootTooltip:SetScript("OnShow", function()
-                if origOnShow then origOnShow() end
-                pfUI.eqcompare.GameTooltipShow()
-            end)
-
-            local origOnHide = AtlasCFMLootTooltip:GetScript("OnHide")
-            AtlasCFMLootTooltip:SetScript("OnHide", function()
-                if origOnHide then origOnHide() end
-                if ShoppingTooltip1 then ShoppingTooltip1:Hide() end
-                if ShoppingTooltip2 then ShoppingTooltip2:Hide() end
-            end)
-        end
+    if not IsPfUIBaseLoaded() or not pfUI.eqcompare or
+        type(pfUI.eqcompare.GameTooltipShow) ~= "function" then
+        return false
     end
+
+    local function HookTooltip(tooltip)
+        if not tooltip or tooltip.atlascfmPfUICompareHooked then return false end
+
+        local origOnShow = tooltip:GetScript("OnShow")
+        tooltip:SetScript("OnShow", function()
+            if origOnShow then origOnShow() end
+            if AtlasCFMOptions and AtlasCFMOptions.LootEquipCompare == true and
+                pfUI and pfUI.eqcompare and type(pfUI.eqcompare.GameTooltipShow) == "function" then
+                pfUI.eqcompare.GameTooltipShow()
+            end
+        end)
+
+        local origOnHide = tooltip:GetScript("OnHide")
+        tooltip:SetScript("OnHide", function()
+            if origOnHide then origOnHide() end
+            if ShoppingTooltip1 then ShoppingTooltip1:Hide() end
+            if ShoppingTooltip2 then ShoppingTooltip2:Hide() end
+        end)
+
+        tooltip.atlascfmPfUICompareHooked = true
+        return true
+    end
+
+    local hooked = HookTooltip(AtlasCFMLootTooltip)
+    HookTooltip(AtlasCFMLootTooltip2)
+    return hooked or (AtlasCFMLootTooltip and AtlasCFMLootTooltip.atlascfmPfUICompareHooked)
 end
+
+-- Expose the idempotent hook so LootUI can call it immediately after creating
+-- Atlas's custom tooltips. AtlaspfUI also retries at PLAYER_ENTERING_WORLD for
+-- load orders where pfUI's eqcompare module initializes a little later.
+AtlasCFM.pfUI.SetupTooltipComparison = SetupTooltipComparison
 
 ---
 --- Applies pfUI styling to tooltips
@@ -1231,8 +1245,19 @@ function AtlasCFM.pfUI.Initialize()
         return
     end
 
-    -- Setup tooltip comparison (works even if styling is disabled)
-    SetupTooltipComparison()
+    -- Setup tooltip comparison (works even if styling is disabled). If pfUI's
+    -- module or Atlas's custom tooltip frames are not ready yet, make one
+    -- event-driven retry after entering the world. No polling is introduced.
+    if not SetupTooltipComparison() and not AtlasCFM.pfUI.compareRetryFrame then
+        local compareRetry = CreateFrame("Frame")
+        AtlasCFM.pfUI.compareRetryFrame = compareRetry
+        compareRetry:RegisterEvent("PLAYER_ENTERING_WORLD")
+        compareRetry:SetScript("OnEvent", function()
+            SetupTooltipComparison()
+            this:UnregisterAllEvents()
+            AtlasCFM.pfUI.compareRetryFrame = nil
+        end)
+    end
 
     -- Apply styling only if enabled in options
     if not IsPfUIStylingEnabled() then
@@ -1261,6 +1286,8 @@ function AtlasCFM.pfUI.Initialize()
     local delayedStyle = CreateFrame("Frame")
     delayedStyle:RegisterEvent("PLAYER_ENTERING_WORLD")
     delayedStyle:SetScript("OnEvent", function()
+        -- Retry comparison hookup after all pfUI modules and Atlas tooltips are ready.
+        SetupTooltipComparison()
         -- Restyle components that might be created late
         StyleLootPanel()
         StyleContainerFrame()

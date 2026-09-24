@@ -39,7 +39,7 @@ Overview: Atlas‑CFM is a dungeon map browser with an integrated loot panel and
 - **Enhanced Item Tooltips**:
   - Displays loot sources, drop rates, and boss names.
   - Integrated recipe information (reagents, skill required).
-  - Support for comparison addons (EquipCompare, EQCompare).
+  - Support for comparison addons (pfUI built-in EquipCompare, EquipCompare, EQCompare).
 - **Server Specialization**: Switch the target server (e.g., TurtleWoW, Vanilla+) to adapt loot tables, quest data, and display server-specific markers.
 - **Wishlist System**: Save desired items to a personal wishlist for quick tracking.
 - **pfQuest Integration**:
@@ -96,7 +96,7 @@ Overview: Atlas‑CFM is a dungeon map browser with an integrated loot panel and
 
 10) Tips
 - Auto‑select is handy when farming: the correct map opens automatically when you enter an instance
-- For item comparison, enable the appropriate tooltip integration (EquipCompare)
+- For item comparison, enable the tooltip integration; Atlas-CFM can use pfUI's built-in comparison module or standalone EquipCompare/EQCompare
 - Hide the loot panel temporarily to save space inside the Atlas window
 
 11) Localization

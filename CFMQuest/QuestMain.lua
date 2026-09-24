@@ -134,6 +134,18 @@ local function kQCompareQuestLogtoQuest(questId)
         return false
     end
 
+    -- ClassicAPI provides a stable quest-ID check that is independent of
+    -- localization, punctuation, duplicate names, and collapsed Quest Log
+    -- headers. Prefer it whenever the current quest record has an ID.
+    local questID = questData and tonumber(questData.Id) or nil
+    if questID and C_QuestLog and type(C_QuestLog.IsOnQuest) == "function" then
+        local ok, onQuest = pcall(C_QuestLog.IsOnQuest, questID)
+        if ok and onQuest ~= nil then
+            return onQuest and true or false
+        end
+    end
+
+    -- Legacy fallback for clients without the ClassicAPI quest-ID bridge.
     -- Extract quest name from title (remove number prefix like "1. ")
     local questTitle = questData.Title
     local questName = questTitle
