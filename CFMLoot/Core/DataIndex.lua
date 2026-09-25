@@ -27,7 +27,6 @@ DataIndex.SpellID = {}       -- spellID -> sourceString
 DataIndex.isIndexed = false
 DataIndex.isIndexing = false
 DataIndex.callbacks = {}
-DataIndex.readyCallbacks = {} -- one-shot callbacks waiting for a complete index
 DataIndex.stage = "idle"
 
 -- Scanner for name resolution
@@ -111,40 +110,15 @@ function DataIndex.GetNamesFromID(id)
     return names
 end
 
--- Public API: Register a persistent callback for completed index rebuilds.
+-- Public API: Register callback for updates
 function DataIndex.RegisterCallback(func)
-    if type(func) == "function" then
-        table.insert(DataIndex.callbacks, func)
-    end
+    table.insert(DataIndex.callbacks, func)
 end
 
--- Public API: run a callback once the complete index is available.
--- Completeness-sensitive callers (Search, source-less Wishlist additions) must
--- use this instead of treating a partially built cache as authoritative.
-function DataIndex.WhenReady(func)
-    if type(func) ~= "function" then return end
-
-    if DataIndex.isIndexed then
-        pcall(func)
-        return
-    end
-
-    table.insert(DataIndex.readyCallbacks, func)
-    if not DataIndex.isIndexing then
-        DataIndex.BuildIndex(true)
-    end
-end
-
--- Internal: Notify persistent UI listeners and then drain one-shot waiters.
+-- Internal: Notify callbacks
 local function NotifyCallbacks()
     for _, func in ipairs(DataIndex.callbacks) do
         pcall(func)
-    end
-
-    local ready = DataIndex.readyCallbacks
-    DataIndex.readyCallbacks = {}
-    for i = 1, table.getn(ready) do
-        pcall(ready[i])
     end
 end
 
@@ -1187,11 +1161,11 @@ function DataIndex.FindItems(text, options)
         return false
     end
 
-    -- Search requires a complete LocationCache. Returning partial results while
-    -- the warm-up is still indexing would make valid items appear missing.
-    if not DataIndex.isIndexed then
-        if not DataIndex.isIndexing then DataIndex.BuildIndex(true) end
-        return nil, "indexing"
+    -- Auto-start indexing if not ready. Preserve the long-standing Atlas
+    -- behavior of searching whatever has already been indexed rather than
+    -- making the search box appear unresponsive during background warm-up.
+    if not DataIndex.isIndexed and not DataIndex.isIndexing then
+        DataIndex.CheckAndBuildIndex()
     end
 
     -- Iterate LocationCache

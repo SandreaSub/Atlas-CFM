@@ -18,10 +18,6 @@
 local L = AtlasCFM.Localization.UI
 local LS = AtlasCFM.Localization.Spells
 
--- Prevent repeated clicks from queuing the same source-less item while the
--- background DataIndex is still warming.
-local pendingWishlistAdds = {}
-
 -- Forward declaration to use function before its definition
 -- (Removed local _GetInstanceKeyByName as we use AtlasCFM.LootUtils.GetInstanceKeyByName)
 
@@ -189,27 +185,16 @@ function AtlasCFMLoot_AddToWishlist(itemID, elemFromSearch, instKeyFromSearch, t
 		end
 	end
 
-	-- If nothing came from the current page/search context, location resolution
-	-- needs the complete DataIndex. Never save a permanently source-less wish
-	-- list record merely because that item's background chunk has not run yet.
+	-- If nothing came from search, try to determine location and source only for items
 	if (not currentElement or currentElement == "") and (not currentInstanceKey or currentInstanceKey == "") and elementType == "item" then
 		if AtlasCFM.DataIndex and AtlasCFM.DataIndex.LocationCache then
-			if not AtlasCFM.DataIndex.isIndexed then
-				local pendingKey = tostring(elementType) .. ":" .. tostring(actualItemID)
-				if not pendingWishlistAdds[pendingKey] and AtlasCFM.DataIndex.WhenReady then
-					pendingWishlistAdds[pendingKey] = true
-					AtlasCFM.DataIndex.WhenReady(function()
-						pendingWishlistAdds[pendingKey] = nil
-						AtlasCFMLoot_AddToWishlist(itemID, elemFromSearch, instKeyFromSearch, typeFromSearch, srcFromSearch)
-					end)
-				elseif not AtlasCFM.DataIndex.isIndexing and AtlasCFM.DataIndex.CheckAndBuildIndex then
-					AtlasCFM.DataIndex.CheckAndBuildIndex()
-				end
-				return
+			-- Use centralized index
+			if not AtlasCFM.DataIndex.isIndexed and not AtlasCFM.DataIndex.isIndexing then
+				AtlasCFM.DataIndex.CheckAndBuildIndex()
 			end
-
 			local locs = AtlasCFM.DataIndex.LocationCache[actualItemID]
 			if locs and locs[1] then
+				-- Pick first location
 				local loc = locs[1]
 				currentElement = loc.boss or loc.displayName
 				currentInstanceKey = loc.inst or loc.page

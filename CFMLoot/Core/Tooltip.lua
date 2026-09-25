@@ -478,22 +478,52 @@ ItemRefTooltip:SetScript("OnHide", function()
 end)
 
 -- ============================================================================
+-- ADDON INTEGRATION SYSTEM
+-- ============================================================================
+
+---
+--- Dynamic addon/variable hooking system
+--- @param addonName string - Name of the addon to wait for
+--- @param hookFunction function - Function to call when addon is loaded
+--- @return nil
+--- @usage AtlasCFMLootTip.HookAddonOrVariable("SomeAddon", function() end)
+---
+AtlasCFMLootTip.HookAddonOrVariable = function(addonName, hookFunction)
+    local lurkerFrame = CreateFrame("Frame")
+    lurkerFrame.hookFunc = hookFunction
+    lurkerFrame:RegisterEvent("ADDON_LOADED")
+    lurkerFrame:RegisterEvent("VARIABLES_LOADED")
+    lurkerFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+
+    lurkerFrame:SetScript("OnEvent", function()
+        if IsAddOnLoaded(addonName) or getglobal(addonName) then
+            this:UnregisterAllEvents()
+            this.hookFunc()
+        end
+    end)
+end
+
+-- ============================================================================
 -- INITIALIZATION
 -- ============================================================================
 
 -- Hook main tooltips
 HookTooltip(GameTooltip)
 
--- DataIndex may finish after an item was first inspected. Clear only Atlas's
--- source memoization at completion so the next tooltip display resolves the
--- now-complete source data instead of remembering an early nil result.
-if AtlasCFM.DataIndex and AtlasCFM.DataIndex.RegisterCallback then
-    AtlasCFM.DataIndex.RegisterCallback(function()
-        ModuleState.lastItemID = nil
-        ModuleState.lastSourceStr = nil
-    end)
-end
-
--- Do not start the global DataIndex merely because the Atlas window opened.
--- The background warm-up is already scheduled by DataIndex.lua, while normal
--- dungeon/map loot rendering uses Atlas's static data directly.
+-- Build global index when Atlas window is first shown to avoid loading lag
+AtlasCFMLootTip.HookAddonOrVariable("AtlasCFM", function()
+    if AtlasCFM and AtlasCFM.OnShow then
+        local original_OnShow = AtlasCFM.OnShow
+        AtlasCFM.OnShow = function()
+            if original_OnShow then original_OnShow() end
+            if AtlasCFM.DataIndex and AtlasCFM.DataIndex.CheckAndBuildIndex then
+                AtlasCFM.DataIndex.CheckAndBuildIndex()
+            end
+        end
+    else
+        -- Fallback if AtlasCFM not fully initialized yet
+        if AtlasCFM.DataIndex and AtlasCFM.DataIndex.CheckAndBuildIndex then
+            AtlasCFM.DataIndex.CheckAndBuildIndex()
+        end
+    end
+end)
