@@ -484,7 +484,16 @@ end)
 -- Hook main tooltips
 HookTooltip(GameTooltip)
 
--- Do not build DataIndex merely because Atlas was opened. Dungeon/map loot
--- rendering uses the static Atlas data directly and must stay independent from
--- the optional cross-reference index. DataIndex starts only from features that
--- actually need it (source lookup, search, profession data, wishlist, etc.).
+-- DataIndex may finish after an item was first inspected. Clear only Atlas's
+-- source memoization at completion so the next tooltip display resolves the
+-- now-complete source data instead of remembering an early nil result.
+if AtlasCFM.DataIndex and AtlasCFM.DataIndex.RegisterCallback then
+    AtlasCFM.DataIndex.RegisterCallback(function()
+        ModuleState.lastItemID = nil
+        ModuleState.lastSourceStr = nil
+    end)
+end
+
+-- Do not start the global DataIndex merely because the Atlas window opened.
+-- The background warm-up is already scheduled by DataIndex.lua, while normal
+-- dungeon/map loot rendering uses Atlas's static data directly.

@@ -61,6 +61,10 @@ end
 local function strtrim(s)
     return (string_gsub(s, "^%s*(.-)%s*$", "%1"))
 end
+
+-- Search needs the complete DataIndex. If a player searches during background
+-- warm-up, keep only the newest request and run it automatically at completion.
+local pendingSearchSerial = 0
 ---
 --- Main search function for items, spells, and enchantments
 --- @param Text string - Search query text
@@ -73,6 +77,22 @@ function AtlasCFM.SearchLib.Search(Text, callback)
     Text = strtrim(Text)
     if Text == "" then return end
 
+    pendingSearchSerial = pendingSearchSerial + 1
+    local requestSerial = pendingSearchSerial
+
+    if AtlasCFM.DataIndex and not AtlasCFM.DataIndex.isIndexed then
+        if AtlasCFM.DataIndex.WhenReady then
+            AtlasCFM.DataIndex.WhenReady(function()
+                if requestSerial == pendingSearchSerial then
+                    AtlasCFM.SearchLib.Search(Text, callback)
+                end
+            end)
+        elseif AtlasCFM.DataIndex.CheckAndBuildIndex then
+            AtlasCFM.DataIndex.CheckAndBuildIndex()
+        end
+        return
+    end
+
     AtlasCFMCharDB.SearchResult = {}
     AtlasCFMLoot_InvalidateCategorizedList("SearchResult")
     AtlasCFMCharDB.LastSearchedText = Text
@@ -84,10 +104,20 @@ function AtlasCFM.SearchLib.Search(Text, callback)
     -- Use centralized DataIndex for search
     -- This avoids redundant calculations and uses the shared index
     if AtlasCFM.DataIndex and AtlasCFM.DataIndex.FindItems then
-        local results = AtlasCFM.DataIndex.FindItems(Text, {
+        local results, state = AtlasCFM.DataIndex.FindItems(Text, {
             partial = partial,
             types = { item = true, spell = true, enchant = true } -- explicit types to match legacy behavior (no quests)
         })
+        if state == "indexing" or results == nil then
+            if AtlasCFM.DataIndex.WhenReady then
+                AtlasCFM.DataIndex.WhenReady(function()
+                    if requestSerial == pendingSearchSerial then
+                        AtlasCFM.SearchLib.Search(Text, callback)
+                    end
+                end)
+            end
+            return
+        end
         AtlasCFMCharDB.SearchResult = results
     else
         -- Fallback if DataIndex is missing (should not happen)
