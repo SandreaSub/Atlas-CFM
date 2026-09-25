@@ -909,21 +909,18 @@ function DataIndex.CheckAndBuildIndex()
     end
 end
 
--- Initialize on load
-local frame = CreateFrame("Frame")
-frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-frame:SetScript("OnEvent", function()
-    -- Start indexing when player enters world to ensure all data is loaded
-    -- But only if options require it
-    -- FIX: Delay indexing to allow server data to propagate (fixes missing skills on login)
-    if AtlasCFM and AtlasCFM.Timer and AtlasCFM.Timer.Start then
-        AtlasCFM.Timer.Start(6, function()
-            DataIndex.CheckAndBuildIndex()
-        end)
-    else
-        DataIndex.CheckAndBuildIndex()
-    end
-end)
+-- Do not build the global source/profession index during PLAYER_ENTERING_WORLD.
+--
+-- A cold character login is the worst time to traverse Atlas's quest, set,
+-- profession and loot tables: the client is still completing its own world and
+-- item-cache initialization, and doing both at once can produce severe stalls
+-- on the 1.12 client. The index is session-only data and does not need to exist
+-- before Atlas is used.
+--
+-- Existing callers already start the same cooperative BuildIndex(true) path on
+-- demand (Atlas OnShow, source/skill/name lookups, search, wishlist/options).
+-- Keeping startup lazy therefore preserves functionality while removing all
+-- DataIndex work from the login critical path.
 
 -- API: Find items by text (Search)
 function DataIndex.FindItems(text, options)
