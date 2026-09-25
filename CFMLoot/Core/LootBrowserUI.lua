@@ -321,6 +321,17 @@ function AtlasCFM.LootBrowserUI.ScrollBarLootUpdate()
 		end
 		dataSource = filtered
 	end
+	-- When a class/availability filter is active, do not progressively remove
+	-- rows as individual cold-cache item responses arrive. Hold filtering while
+	-- this page still has live requests, then apply the filter atomically on the
+	-- final cache refresh. Names/icons may still improve progressively.
+	local activeFilterMode = AtlasCFMOptions.LootFilterMode or 0
+	local deferLootFilter = false
+	if not isCraftingPage and activeFilterMode > 0 and type(dataSource) == "table"
+		and AtlasCFM.LootCache and AtlasCFM.LootCache.HasPendingItems then
+		deferLootFilter = AtlasCFM.LootCache.HasPendingItems(dataSource)
+	end
+
 	-- Hide navigation buttons by default
 	_G["AtlasCFMLootItemsFrame_BACK"]:Hide()
 	_G["AtlasCFMLootItemsFrame_NEXT"]:Hide()
@@ -632,10 +643,11 @@ function AtlasCFM.LootBrowserUI.ScrollBarLootUpdate()
 
 						shouldShow = true
 
-						-- Apply loot filter
-						local filterMode = AtlasCFMOptions.LootFilterMode or 0
-						if not isCraftingPage and filterMode > 0 and itemID and itemID > 0 then
-							if not AtlasCFM.ItemDB.IsItemSuitable(itemID, filterMode) then
+						-- Apply loot filter only when the whole current page is no longer
+						-- waiting on item-cache responses. This prevents rows from vanishing
+						-- one by one on a cold WDB while preserving the final filter result.
+						if not deferLootFilter and not isCraftingPage and activeFilterMode > 0 and itemID and itemID > 0 then
+							if not AtlasCFM.ItemDB.IsItemSuitable(itemID, activeFilterMode) then
 								shouldShow = false
 							end
 						end

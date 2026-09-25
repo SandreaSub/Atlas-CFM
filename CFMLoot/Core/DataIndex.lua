@@ -27,6 +27,7 @@ DataIndex.SpellID = {}       -- spellID -> sourceString
 DataIndex.isIndexed = false
 DataIndex.isIndexing = false
 DataIndex.callbacks = {}
+local readyCallbacks = {} -- one-shot callbacks waiting for the full index
 DataIndex.stage = "idle"
 
 -- Scanner for name resolution
@@ -120,6 +121,32 @@ local function NotifyCallbacks()
     for _, func in ipairs(DataIndex.callbacks) do
         pcall(func)
     end
+
+    -- One-shot consumers such as Search must never inspect a partial index and
+    -- conclude that data is missing. Drain their callbacks only after the full
+    -- warm-up has completed. Copy first so callbacks may safely queue new work.
+    local waiting = readyCallbacks
+    readyCallbacks = {}
+    for i = 1, table.getn(waiting) do
+        pcall(waiting[i])
+    end
+end
+
+--- Run a callback once the complete DataIndex is ready. If indexing has not
+--- started yet, a cooperative build begins immediately rather than waiting for
+--- the normal post-login warm-up delay.
+function DataIndex.WhenReady(func)
+    if type(func) ~= "function" then return false end
+    if DataIndex.isIndexed then
+        pcall(func)
+        return true
+    end
+
+    table.insert(readyCallbacks, func)
+    if not DataIndex.isIndexing then
+        DataIndex.BuildIndex(true)
+    end
+    return false
 end
 
 -- Internal: Helper for Tooltip indexing (recursive list processing)
@@ -377,10 +404,10 @@ local function indexProfItemsAsync(spellList, profLookup, typeName, done)
             ProcessOneSpell(spellID, data)
             count = count + 1
         end
-        AtlasCFM.Timer.Start(0.05, RunBatch)
+        AtlasCFM.Timer.Start(0.02, RunBatch)
     end
 
-    AtlasCFM.Timer.Start(0.05, RunBatch)
+    AtlasCFM.Timer.Start(0.02, RunBatch)
 end
 
 local function IndexElement(el, source, locationInfo)
@@ -575,7 +602,7 @@ local function IndexListAsync(list, source, locationInfo, done, batchSize)
         end
 
         if table.getn(stack) > 0 then
-            AtlasCFM.Timer.Start(0.03, RunBatch)
+            AtlasCFM.Timer.Start(0.02, RunBatch)
         elseif done then
             done()
         end
@@ -882,7 +909,7 @@ function DataIndex.BuildIndex(incremental)
         end
     end
 
-    local SLICE_DELAY = 0.05
+    local SLICE_DELAY = 0.02
     local QUESTS_PER_SLICE = 2
     local SETS_PER_SLICE = 1
     local PROF_PAGES_PER_SLICE = 1
@@ -911,7 +938,7 @@ function DataIndex.BuildIndex(incremental)
         local key = lootKeys[lootIndex]
         lootIndex = lootIndex + 1
         IndexOneLootTableAsync(key, function()
-            Schedule(RunLootSlice, 0.05)
+            Schedule(RunLootSlice, 0.01)
         end)
     end
 
@@ -925,7 +952,7 @@ function DataIndex.BuildIndex(incremental)
         local job = instanceJobs[instanceIndex]
         instanceIndex = instanceIndex + 1
         ProcessInstanceEntryAsync(job[1], job[2], job[3], job[4], function()
-            Schedule(RunInstanceSlice, 0.05)
+            Schedule(RunInstanceSlice, 0.01)
         end)
     end
 

@@ -73,6 +73,23 @@ function AtlasCFM.SearchLib.Search(Text, callback)
     Text = strtrim(Text)
     if Text == "" then return end
 
+    -- Search is backed by LocationCache, so a partial DataIndex can produce a
+    -- convincing but false "No match found" result. Wait for the complete
+    -- cooperative warm-up instead. The newest queued search wins if the player
+    -- submits another query while indexing is still in progress.
+    if AtlasCFM.DataIndex and not AtlasCFM.DataIndex.isIndexed and AtlasCFM.DataIndex.WhenReady then
+        AtlasCFM.SearchLib.pendingSearchSerial = (AtlasCFM.SearchLib.pendingSearchSerial or 0) + 1
+        local serial = AtlasCFM.SearchLib.pendingSearchSerial
+        if not callback then
+            PrintA("Atlas-CFM: Indexing data; search will run automatically when ready.")
+        end
+        AtlasCFM.DataIndex.WhenReady(function()
+            if serial ~= AtlasCFM.SearchLib.pendingSearchSerial then return end
+            AtlasCFM.SearchLib.Search(Text, callback)
+        end)
+        return
+    end
+
     AtlasCFMCharDB.SearchResult = {}
     AtlasCFMLoot_InvalidateCategorizedList("SearchResult")
     AtlasCFMCharDB.LastSearchedText = Text

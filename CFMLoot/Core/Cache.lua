@@ -94,14 +94,12 @@ eventFrame:SetScript("OnEvent", function()
     local state = pending[itemID]
     if not state then return end
 
-    -- ClassicAPI versions in the wild have represented success as 1/0 or
-    -- 1/nil. Check explicitly so numeric 0 is never mistaken for truthy Lua.
-    local success = (arg2 == true or tonumber(arg2) == 1)
     pending[itemID] = nil
 
-    if success or IsCached(itemID) then
-        QueueVisibleRefresh()
-    end
+    -- Success or failure both change the page-wide pending state. A refresh on
+    -- failure lets the loot UI apply its final stable filter once the last live
+    -- request is gone instead of waiting for some unrelated redraw.
+    QueueVisibleRefresh()
 end)
 
 local function EnsureEventRegistration()
@@ -217,8 +215,10 @@ PollPending = function()
 
             if (now - firstRequest) >= REQUEST_TIMEOUT then
                 -- Never mark the item as permanently missing. Dropping only the
-                -- live request lets a later page-open attempt it again.
+                -- live request lets a later page-open attempt it again. The
+                -- pending-state transition still needs one final UI refresh.
                 pending[itemID] = nil
+                refreshed = true
             elseif attempts < MAX_ATTEMPTS and (now - lastRequest) >= RETRY_AFTER then
                 EnqueueExisting(itemID, state)
             end
@@ -352,6 +352,76 @@ function LootCache.ForceCacheItem(itemID, maxAttempts, callback)
         end
     end
     return false
+end
+
+-- Return the created item for a profession spell/enchant without queuing it.
+local function ResolveCraftResultItem(spellID, kind)
+    if not AtlasCFM.SpellDB or not spellID then return nil end
+    local data = nil
+    if kind == "enchant" then
+        data = AtlasCFM.SpellDB.enchants and AtlasCFM.SpellDB.enchants[spellID]
+    elseif kind == "spell" then
+        data = AtlasCFM.SpellDB.craftspells and AtlasCFM.SpellDB.craftspells[spellID]
+    else
+        data = (AtlasCFM.SpellDB.enchants and AtlasCFM.SpellDB.enchants[spellID]) or
+            (AtlasCFM.SpellDB.craftspells and AtlasCFM.SpellDB.craftspells[spellID])
+    end
+    if not data then return nil end
+    return AtlasCFM.Server and AtlasCFM.Server.GetDataField
+        and AtlasCFM.Server.GetDataField(data, "item") or data.item
+end
+
+local function HasPendingInList(dataSource, forceItems)
+    if type(dataSource) ~= "table" then return false end
+    local n = table.getn(dataSource)
+
+    for i = 1, n do
+        local element = dataSource[i]
+        local t = type(element)
+        if t == "number" then
+            if pending[element] then return true end
+        elseif t == "table" then
+            local visible = not AtlasCFM.Server or not AtlasCFM.Server.IsVisible or AtlasCFM.Server.IsVisible(element)
+            if visible then
+                local id = element.id or element[1]
+                local pendingID = nil
+                if id then
+                    local itemType = element._wlType or element[4]
+                    local elType = AtlasCFM.Server and AtlasCFM.Server.GetDataField
+                        and AtlasCFM.Server.GetDataField(element, "type") or element.type
+                    local skill = AtlasCFM.Server and AtlasCFM.Server.GetDataField
+                        and AtlasCFM.Server.GetDataField(element, "skill") or element.skill
+
+                    if forceItems then
+                        pendingID = id
+                    elseif itemType == "spell" or itemType == "enchant" then
+                        pendingID = ResolveCraftResultItem(id, itemType) or id
+                    elseif elType == "spell" or elType == "enchant" then
+                        pendingID = ResolveCraftResultItem(id, elType) or id
+                    elseif elType == "item" then
+                        pendingID = id
+                    elseif skill ~= nil then
+                        pendingID = ResolveCraftResultItem(id, nil)
+                    elseif element.id == nil and element[1] ~= nil then
+                        pendingID = id
+                    else
+                        pendingID = id
+                    end
+                end
+
+                if pendingID and pending[pendingID] then return true end
+                if element.container and HasPendingInList(element.container, true) then return true end
+            end
+        end
+    end
+    return false
+end
+
+--- Returns true while any real item represented by this page still has a live
+--- cache request. Used by the loot UI to keep class/availability filtering
+--- stable until the page has enough item data to make all decisions at once.
+function LootCache.HasPendingItems(dataSource)
+    return HasPendingInList(dataSource, false)
 end
 
 --- Request all real item IDs represented by a loot-data list.
