@@ -478,52 +478,13 @@ ItemRefTooltip:SetScript("OnHide", function()
 end)
 
 -- ============================================================================
--- ADDON INTEGRATION SYSTEM
--- ============================================================================
-
----
---- Dynamic addon/variable hooking system
---- @param addonName string - Name of the addon to wait for
---- @param hookFunction function - Function to call when addon is loaded
---- @return nil
---- @usage AtlasCFMLootTip.HookAddonOrVariable("SomeAddon", function() end)
----
-AtlasCFMLootTip.HookAddonOrVariable = function(addonName, hookFunction)
-    local lurkerFrame = CreateFrame("Frame")
-    lurkerFrame.hookFunc = hookFunction
-    lurkerFrame:RegisterEvent("ADDON_LOADED")
-    lurkerFrame:RegisterEvent("VARIABLES_LOADED")
-    lurkerFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-
-    lurkerFrame:SetScript("OnEvent", function()
-        if IsAddOnLoaded(addonName) or getglobal(addonName) then
-            this:UnregisterAllEvents()
-            this.hookFunc()
-        end
-    end)
-end
-
--- ============================================================================
 -- INITIALIZATION
 -- ============================================================================
 
 -- Hook main tooltips
 HookTooltip(GameTooltip)
 
--- Build global index when Atlas window is first shown to avoid loading lag
-AtlasCFMLootTip.HookAddonOrVariable("AtlasCFM", function()
-    if AtlasCFM and AtlasCFM.OnShow then
-        local original_OnShow = AtlasCFM.OnShow
-        AtlasCFM.OnShow = function()
-            if original_OnShow then original_OnShow() end
-            if AtlasCFM.DataIndex and AtlasCFM.DataIndex.CheckAndBuildIndex then
-                AtlasCFM.DataIndex.CheckAndBuildIndex()
-            end
-        end
-    else
-        -- Fallback if AtlasCFM not fully initialized yet
-        if AtlasCFM.DataIndex and AtlasCFM.DataIndex.CheckAndBuildIndex then
-            AtlasCFM.DataIndex.CheckAndBuildIndex()
-        end
-    end
-end)
+-- Do not build DataIndex merely because Atlas was opened. Dungeon/map loot
+-- rendering uses the static Atlas data directly and must stay independent from
+-- the optional cross-reference index. DataIndex starts only from features that
+-- actually need it (source lookup, search, profession data, wishlist, etc.).

@@ -917,10 +917,11 @@ end
 -- on the 1.12 client. The index is session-only data and does not need to exist
 -- before Atlas is used.
 --
--- Existing callers already start the same cooperative BuildIndex(true) path on
--- demand (Atlas OnShow, source/skill/name lookups, search, wishlist/options).
+-- Existing feature-specific callers start the same cooperative BuildIndex(true)
+-- path on demand (source/skill/name lookups, search, wishlist/options). Merely
+-- opening Atlas or a dungeon loot page does not require this global index.
 -- Keeping startup lazy therefore preserves functionality while removing all
--- DataIndex work from the login critical path.
+-- DataIndex work from the login and ordinary loot-display critical paths.
 
 -- API: Find items by text (Search)
 function DataIndex.FindItems(text, options)
