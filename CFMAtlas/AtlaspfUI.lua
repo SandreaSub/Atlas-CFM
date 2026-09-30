@@ -991,23 +991,50 @@ end
 --- Works regardless of pfUI styling setting if pfUI is loaded
 ---
 local function SetupTooltipComparison()
-    if not IsPfUIBaseLoaded() or not pfUI.eqcompare or
-        type(pfUI.eqcompare.GameTooltipShow) ~= "function" then
+    if not IsPfUIBaseLoaded() or not pfUI.eqcompare then
+        return false
+    end
+
+    -- pfUI changed its public comparison hook in newer forks.
+    -- Modern builds expose HookTooltip(tooltip); older builds exposed
+    -- GameTooltipShow() and expected an OnShow script hook. Support both.
+    local hasNativeHook = type(pfUI.eqcompare.HookTooltip) == "function"
+    local hasLegacyShow = type(pfUI.eqcompare.GameTooltipShow) == "function"
+    if not hasNativeHook and not hasLegacyShow then
         return false
     end
 
     local function HookTooltip(tooltip)
-        if not tooltip or tooltip.atlascfmPfUICompareHooked then return false end
+        if not tooltip then return false end
+        if tooltip.atlascfmPfUICompareHooked then return true end
 
-        local origOnShow = tooltip:GetScript("OnShow")
-        tooltip:SetScript("OnShow", function()
-            if origOnShow then origOnShow() end
-            if AtlasCFMOptions and AtlasCFMOptions.LootEquipCompare == true and
-                pfUI and pfUI.eqcompare and type(pfUI.eqcompare.GameTooltipShow) == "function" then
-                pfUI.eqcompare.GameTooltipShow()
+        if hasNativeHook then
+            -- Current brues-code/pfUI hooks the tooltip's Set* item methods and
+            -- resolves the compared link itself. Only install that hook while
+            -- Atlas comparison is enabled; ApplyEquipCompareIntegration() can
+            -- attach it later if the option is enabled after login.
+            if not AtlasCFMOptions or AtlasCFMOptions.LootEquipCompare ~= true then
+                return false
             end
-        end)
 
+            local ok = pcall(pfUI.eqcompare.HookTooltip, tooltip)
+            if not ok then return false end
+        else
+            -- Legacy pfUI path. Keep the Atlas option check dynamic because the
+            -- old API can be gated on every tooltip show.
+            local origOnShow = tooltip:GetScript("OnShow")
+            tooltip:SetScript("OnShow", function()
+                if origOnShow then origOnShow() end
+                if AtlasCFMOptions and AtlasCFMOptions.LootEquipCompare == true and
+                    pfUI and pfUI.eqcompare and type(pfUI.eqcompare.GameTooltipShow) == "function" then
+                    pfUI.eqcompare.GameTooltipShow()
+                end
+            end)
+        end
+
+        -- Atlas owns these custom tooltips, so explicitly hide comparison
+        -- tooltips when the source tooltip closes. Also suppress a previously
+        -- installed native pfUI hook if the Atlas option is turned off later.
         local origOnHide = tooltip:GetScript("OnHide")
         tooltip:SetScript("OnHide", function()
             if origOnHide then origOnHide() end
@@ -1015,13 +1042,22 @@ local function SetupTooltipComparison()
             if ShoppingTooltip2 then ShoppingTooltip2:Hide() end
         end)
 
+        local origOnShowGuard = tooltip:GetScript("OnShow")
+        tooltip:SetScript("OnShow", function()
+            if origOnShowGuard then origOnShowGuard() end
+            if not AtlasCFMOptions or AtlasCFMOptions.LootEquipCompare ~= true then
+                if ShoppingTooltip1 then ShoppingTooltip1:Hide() end
+                if ShoppingTooltip2 then ShoppingTooltip2:Hide() end
+            end
+        end)
+
         tooltip.atlascfmPfUICompareHooked = true
         return true
     end
 
-    local hooked = HookTooltip(AtlasCFMLootTooltip)
-    HookTooltip(AtlasCFMLootTooltip2)
-    return hooked or (AtlasCFMLootTooltip and AtlasCFMLootTooltip.atlascfmPfUICompareHooked)
+    local hooked1 = HookTooltip(AtlasCFMLootTooltip)
+    local hooked2 = HookTooltip(AtlasCFMLootTooltip2)
+    return hooked1 or hooked2
 end
 
 -- Expose the idempotent hook so LootUI can call it immediately after creating

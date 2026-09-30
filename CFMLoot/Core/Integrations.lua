@@ -29,15 +29,17 @@ local L = (AtlasCFM.Localization and AtlasCFM.Localization.UI) or {}
 function AtlasCFM.Integrations.HasPfUIEquipCompare()
     if not IsAddOnLoaded("pfUI") or not pfUI then return false end
 
-    -- During addon startup pfUI may be loaded before its modules have finished
-    -- initializing. Treat the provider as available unless eqcompare is
-    -- explicitly disabled, then let the idempotent tooltip hook attach once
-    -- pfUI.eqcompare.GameTooltipShow exists.
     if pfUI_config and pfUI_config.disabled and pfUI_config.disabled["eqcompare"] == "1" then
         return false
     end
 
-    return true
+    -- New pfUI forks expose HookTooltip(); older pfUI exposes
+    -- GameTooltipShow(). Do not claim pfUI comparison is available unless an
+    -- actual supported API is present, otherwise a working standalone provider
+    -- would be suppressed for no reason.
+    return pfUI.eqcompare and
+        (type(pfUI.eqcompare.HookTooltip) == "function" or
+         type(pfUI.eqcompare.GameTooltipShow) == "function")
 end
 
 ---
@@ -468,6 +470,9 @@ function AtlasCFM.Integrations.ApplyEquipCompareIntegration()
         -- itself is installed by AtlasCFM.pfUI once the custom tooltips exist.
         if AtlasCFM.Integrations.HasPfUIEquipCompare() then
             if shaguHookFrame then shaguHookFrame:Hide() end
+            if AtlasCFM.pfUI and AtlasCFM.pfUI.SetupTooltipComparison then
+                AtlasCFM.pfUI.SetupTooltipComparison()
+            end
         elseif IsAddOnLoaded("EquipCompare") then
             AtlasCFM.Integrations.RegisterEquipCompareTooltips(AtlasCFMLootTooltip, AtlasCFMLootTooltip2)
         elseif IsAddOnLoaded("EQCompare") then
@@ -480,6 +485,8 @@ function AtlasCFM.Integrations.ApplyEquipCompareIntegration()
         end
     else
         -- Unregister everything if disabled
+        if ShoppingTooltip1 then ShoppingTooltip1:Hide() end
+        if ShoppingTooltip2 then ShoppingTooltip2:Hide() end
         if IsAddOnLoaded("EquipCompare") then
             AtlasCFM.Integrations.UnregisterEquipCompareTooltips(AtlasCFMLootTooltip, AtlasCFMLootTooltip2)
         end

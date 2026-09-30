@@ -1250,7 +1250,7 @@ end
 --- @param scriptType string The script type to hook (e.g., "OnShow", "OnHide")
 --- @param handler function The new handler function to add
 --- @return nil
---- @usage hookScript(AtlasCFM.Quest.Tooltip, "OnShow", pfUI.eqcompare.GameTooltipShow)
+--- @usage hookScript(frame, "OnShow", handler)
 ---
 local function hookScript(frame1, scriptType, handler)
     -- Store original script handler
@@ -1281,13 +1281,10 @@ local function setupPfUITooltip()
     pfUI.api.CreateBackdropShadow(AtlasCFMLootTooltip)
     pfUI.api.CreateBackdrop(AtlasCFMLootTooltip2)
     pfUI.api.CreateBackdropShadow(AtlasCFMLootTooltip2)
-    -- Setup equipment comparison if available
-    if pfUI.eqcompare then
-        hookScript(AtlasCFMLootTooltip, "OnShow", pfUI.eqcompare.GameTooltipShow)
-        hookScript(AtlasCFMLootTooltip, "OnHide", function()
-            ShoppingTooltip1:Hide()
-            ShoppingTooltip2:Hide()
-        end)
+    -- Setup equipment comparison through the compatibility layer. New pfUI
+    -- forks expose HookTooltip(); older builds expose GameTooltipShow().
+    if AtlasCFM.pfUI and AtlasCFM.pfUI.SetupTooltipComparison then
+        AtlasCFM.pfUI.SetupTooltipComparison()
     end
 end
 
