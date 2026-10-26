@@ -40,7 +40,7 @@ Overview: Atlas‑CFM is a dungeon map browser with an integrated loot panel and
   - Displays loot sources, drop rates, and boss names.
   - Integrated recipe information (reagents, skill required).
   - Support for comparison addons (pfUI built-in EquipCompare, EquipCompare, EQCompare).
-- **Server Specialization**: Switch the target server (e.g., TurtleWoW, Vanilla+) to adapt loot tables, quest data, and display server-specific markers.
+- **Server Specialization**: Switch the target server (e.g., 1.18.1 clients) to adapt loot tables, quest data, and display server-specific markers.
 - **Wishlist System**: Save desired items to a personal wishlist for quick tracking.
 - **pfQuest Integration**:
   - Right-click on an item to search for it in the pfQuest database.
