@@ -353,6 +353,7 @@ AtlasCFM.Localization:RegisterNamespace("UI", "enUS", {
     ["Use EquipCompare"] = true,
     ["Make Loot Table Opaque"] = true,
     ["Show Source on Tooltips"] = true,
+    ["Show Drop Rate on Tooltips"] = true,
     ["Show IDs in Tooltips"] = true,
     ["Show Icon in Tooltips"] = true,
 

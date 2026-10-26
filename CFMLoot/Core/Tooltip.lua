@@ -72,9 +72,7 @@ local AtlasCFMLootTip = CreateFrame("Frame", TIP_NAME, GameTooltip)
 
 local ModuleState = {
     insideHook = false,
-    tooltipMoney = 0,
-    lastItemID = nil,
-    lastSourceStr = nil
+    tooltipMoney = 0
 }
 
 -- ============================================================================
@@ -129,34 +127,8 @@ end
 -- as IsItemInLootPage and GetLootPageDisplayName respectively.
 
 local function FindItemSource(itemID)
-    if not AtlasCFM.DataIndex or not AtlasCFM.DataIndex.SourceCache then return nil end
-
-    -- Use centralized index
-    local source = AtlasCFM.DataIndex.SourceCache[itemID]
-
-    -- Trigger indexing if not ready
-    if not AtlasCFM.DataIndex.isIndexed and not AtlasCFM.DataIndex.isIndexing then
-        AtlasCFM.DataIndex.BuildIndex(true)
-    end
-
-    -- Handle false (cached as missing)
-    if source == false then return nil end
-    if source then return source end
-
-    -- Fallback for Transmogrification (Custom IDs)
-    local name = GetItemInfo(itemID)
-    if name and AtlasCFM.DataIndex.NameToID then
-        local originalID = AtlasCFM.DataIndex.NameToID[name]
-        if originalID and originalID ~= itemID then
-            local originalSource = AtlasCFM.DataIndex.SourceCache[originalID]
-            if originalSource then
-                AtlasCFM.DataIndex.SourceCache[itemID] = originalSource
-                return originalSource
-            end
-        end
-    end
-
-    return nil
+    if not AtlasCFM.DataIndex then return nil end
+    return AtlasCFM.DataIndex.GetItemSource(itemID)
 end
 
 local function GetItemIDByName(name)
@@ -180,20 +152,15 @@ local function ExtendTooltip(tooltip)
     if AtlasCFMOptions and AtlasCFMOptions.LootShowSource then
         local itemID = tonumber(tooltip.itemID)
         if itemID and itemID ~= FASHION_COIN_ID then
-            -- Use caching to avoid repeated lookups
-            if itemID ~= ModuleState.lastItemID then
-                ModuleState.lastItemID = itemID
-                ModuleState.lastSourceStr = nil
-
-                local source = FindItemSource(itemID)
-                if source then
-                    ModuleState.lastSourceStr = GREY .. source .. "|r"
+            -- The shared index caches lookups. Format on each hover so toggling
+            -- the option or finishing background indexing takes effect immediately.
+            local source = FindItemSource(itemID)
+            if source then
+                local dropRate = AtlasCFM.DataIndex.DropRateCache[itemID]
+                if AtlasCFMOptions.TooltipShowDropRate and type(dropRate) == "number" then
+                    source = source .. " (" .. dropRate .. "%)"
                 end
-            end
-
-            -- Simply add source line at the end with text wrapping
-            if ModuleState.lastSourceStr then
-                tooltip:AddLine(ModuleState.lastSourceStr, nil, nil, nil, true)
+                tooltip:AddLine(GREY .. source .. "|r", nil, nil, nil, true)
                 tooltip:Show()
             end
         end

@@ -1,10 +1,6 @@
 ## Interface: 11200
 ## Title: Atlas-CFM
 ## Notes: instance map browser; shows possible boss loot and instance quests.
-## Notes-deDE: Instanzkarten-Browser; zeigt die mögliche Beute der Bosse und die Quests der Instanz.
-## Notes-esES: navegador de mapas de mazmorras; muestra el botín posible de los jefes y las misiones de la mazmorra.
-## Notes-ptBR: navegador de mapas de masmorras; mostra o saque possível dos chefes e as missões da masmorra.
-## Notes-zhCN: 副本地图浏览器; 显示首领可能掉落的战利品以及该副本的任务。
 ## Version: 1.87
 ## Author: CFM, etc
 ## SavedVariables: AtlasCFMOptions

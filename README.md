@@ -1,6 +1,6 @@
 # Atlas‑CFM — Documentation (WoW 1.12)
 
-Overview: Atlas‑CFM is a dungeon map browser with an integrated loot panel and quests module. It is compatible with World of Warcraft 1.12 and includes localization support.
+Overview: Atlas‑CFM is a dungeon map browser with an integrated loot panel and quests module. It is compatible with World of Warcraft 1.12 and uses English-only addon text and quest data.
 
 ![main](https://github.com/user-attachments/assets/fb4b69fc-158c-4f55-a0dd-bfd0a7967170)
 
@@ -37,7 +37,8 @@ Overview: Atlas‑CFM is a dungeon map browser with an integrated loot panel and
   - Filtering of loot and recipes based on your character's professions.
   - Reagent requirements and crafting information displayed in item tooltips.
 - **Enhanced Item Tooltips**:
-  - Displays loot sources, drop rates, and boss names.
+  - Displays loot sources and boss names.
+  - Enable **Show Drop Rate on Tooltips** in `/atlas options` to append the recorded percentage to the source line (enabled by default; requires **Show Source on Tooltips**). Items without a recorded rate keep their source text. Rates come from the addon's existing loot tables, including boss defaults.
   - Integrated recipe information (reagents, skill required).
   - Support for comparison addons (pfUI built-in EquipCompare, EquipCompare, EQCompare).
 - **Server Specialization**: Switch the target server (e.g., 1.18.1 clients) to adapt loot tables, quest data, and display server-specific markers.

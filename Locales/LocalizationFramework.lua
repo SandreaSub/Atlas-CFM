@@ -10,7 +10,7 @@ AtlasCFM = _G.AtlasCFM or {}
 
 if not AtlasCFM.Localization then
     AtlasCFM.Localization = {
-        currentLocale = (GetLocale and GetLocale() or "enUS"),
+        currentLocale = "enUS",
         namespaces = {}
     }
 end
@@ -61,27 +61,20 @@ end
 --- Register a new localization namespace
 ---
 function AtlasCFM.Localization:RegisterNamespace(namespace, locale, translations)
+    if locale ~= "enUS" then return end
     if not self.namespaces[namespace] then
+        local english = {}
         self.namespaces[namespace] = {
-            enUS = {},
-            current = {}
+            enUS = english,
+            current = english
         }
     end
 
     local ns = self.namespaces[namespace]
 
-    -- Always load enUS as fallback
-    if locale == "enUS" then
-        for k, v in pairs(translations) do
-            ns.enUS[k] = v
-        end
-    end
-
-    -- Load current locale if it matches
-    if locale == self.currentLocale then
-        for k, v in pairs(translations) do
-            ns.current[k] = v
-        end
+    -- Keep one English table; both fields alias it for existing consumers.
+    for k, v in pairs(translations) do
+        ns.enUS[k] = v
     end
 end
 

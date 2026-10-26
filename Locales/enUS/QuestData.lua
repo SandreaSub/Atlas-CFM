@@ -18,9 +18,6 @@
 local _G = getfenv()
 AtlasCFM = _G.AtlasCFM
 
-local loc = GetLocale()
-if loc == "esES" or loc == "ptBR" or loc == "deDE" or loc == "zhCN" then return end
-
 ---------------
 --- COLOURS ---
 ---------------

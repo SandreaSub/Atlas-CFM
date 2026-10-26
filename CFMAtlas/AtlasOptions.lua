@@ -92,6 +92,7 @@ local DEFAULT_OPTIONS = {
     },
     TooltipShowID = true,
     TooltipShowIcon = true,
+    TooltipShowDropRate = true,
     ProfessionInfo = false,
     TradeSkillShowLevels = true,
     CraftSkillShowLevels = true,
@@ -502,6 +503,7 @@ function AtlasCFM.OptionsInit()
     if AtlasCFMOptionShowPanel then AtlasCFMOptionShowPanel:SetChecked(AtlasCFMOptions.LootShowPanel) end
     if AtlasCFMOptionTooltipID then AtlasCFMOptionTooltipID:SetChecked(AtlasCFMOptions.TooltipShowID) end
     if AtlasCFMOptionTooltipIcon then AtlasCFMOptionTooltipIcon:SetChecked(AtlasCFMOptions.TooltipShowIcon) end
+    if AtlasCFMOptionTooltipDropRate then AtlasCFMOptionTooltipDropRate:SetChecked(AtlasCFMOptions.TooltipShowDropRate) end
 
     -- Update Loot Filter button text
     if AtlasCFMLootFilterButton then
@@ -760,6 +762,12 @@ end
 ---
 function AtlasCFM.OptionTooltipIconOnClick()
     AtlasCFMOptions.TooltipShowIcon = not AtlasCFMOptions.TooltipShowIcon
+    AtlasCFM.OptionsInit()
+end
+
+-- Show the recorded drop rate beside the tooltip's source.
+function AtlasCFM.OptionTooltipDropRateOnClick()
+    AtlasCFMOptions.TooltipShowDropRate = not AtlasCFMOptions.TooltipShowDropRate
     AtlasCFM.OptionsInit()
 end
 

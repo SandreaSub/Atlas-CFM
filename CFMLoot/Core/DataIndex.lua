@@ -18,6 +18,7 @@ local Colors = AtlasCFM.Colors or {}
 
 -- Caches
 DataIndex.SourceCache = {}   -- itemID -> sourceString
+DataIndex.DropRateCache = {} -- itemID -> drop rate for the selected source
 DataIndex.LocationCache = {} -- itemID -> list of { type, page, boss, inst, displayName }
 DataIndex.SkillCache = {}    -- name -> skillString (e.g. "<1/50/100/150>")
 DataIndex.NameToID = {}      -- name -> itemID
@@ -457,7 +458,12 @@ local function IndexElement(el, source, locationInfo)
                 itemSource = itemSource .. " (" .. itemToSetMap[id] .. ")"
             end
         end
-        if not DataIndex.SourceCache[cacheKey] then DataIndex.SourceCache[cacheKey] = itemSource end
+        if not DataIndex.SourceCache[cacheKey] then
+            DataIndex.SourceCache[cacheKey] = itemSource
+            if actualType == "item" then
+                DataIndex.DropRateCache[cacheKey] = AtlasCFM.Server.GetDataField(el, "dropRate")
+            end
+        end
 
         -- Also index the created item if this ID is a spell/enchant.
         if (actualType == "spell" or actualType == "enchant") and AtlasCFM.SpellDB then
@@ -1056,6 +1062,7 @@ function DataIndex.GetItemSource(itemID)
             local source = DataIndex.SourceCache[originalID]
             if source then
                 DataIndex.SourceCache[itemID] = source
+                DataIndex.DropRateCache[itemID] = DataIndex.DropRateCache[originalID]
                 return source
             end
         end

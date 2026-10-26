@@ -566,6 +566,13 @@ do
             script = function()
                 AtlasCFM.OptionProfessionInfoOnClick()
             end
+        },
+        {
+            name = "AtlasCFMOptionTooltipDropRate",
+            text = L["Show Drop Rate on Tooltips"],
+            script = function()
+                AtlasCFM.OptionTooltipDropRateOnClick()
+            end
         }
     }
 
